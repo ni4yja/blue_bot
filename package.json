@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@atproto/api": "^0.6.20",
+    "cheerio": "^1.0.0",
+    "cron": "^3.1.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
+    "process": "^0.11.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4"
+  }
+}
