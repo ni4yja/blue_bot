@@ -7,79 +7,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import pkg from "@atproto/api";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
-import { load } from "cheerio";
-const { BskyAgent } = pkg;
+import pkg from '@atproto/api';
+import { initializeLinks } from "./services/europeanaService.js";
+import { getOgImage } from "./services/ogImageService.js";
+import { uploadImage } from "./services/blobService.js";
+import { loginToBsky, postToBsky } from "./services/bskyService.js";
+import { CronJob } from "cron";
 dotenv.config();
+const { BskyAgent } = pkg;
 const agent = new BskyAgent({
     service: "https://bsky.social",
 });
 let links = [];
 let currentIndex = 0;
-function initializeLinks() {
+function runBlueBot() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const params = {
-                page: "0",
-                pageSize: "22",
-                wskey: process.env.EUROPEANA_API_KEY,
-            };
-            const baseUrl = "https://api.europeana.eu/set/9109";
-            const url = `${baseUrl}?${new URLSearchParams(params).toString()}`;
-            const response = yield fetch(url);
-            if (!response.ok) {
-                throw new Error(`Error fetching data: ${response.statusText}`);
+            links = yield initializeLinks(process.env.EUROPEANA_API_KEY);
+            if (links.length === 0) {
+                console.log("No links to post.");
+                return;
             }
-            const data = (yield response.json());
-            if (data.items && data.items.length > 0) {
-                links = data.items.map((link) => link.replace("http://data.europeana.eu/", "https://www.europeana.eu/"));
-            }
-            else {
-                console.log("Nothing to post.");
-            }
+            yield loginToBsky(agent, process.env.BLUESKY_USERNAME, process.env.BLUESKY_PASSWORD);
+            const job = new CronJob('* * * * *', () => __awaiter(this, void 0, void 0, function* () {
+                yield postLink();
+            }));
+            job.start();
+            console.log("Blue Bot is on fire!");
         }
         catch (error) {
-            console.error("Error initializing links from Europeana:", error);
-        }
-    });
-}
-function getOgImage(link) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const response = yield fetch(link);
-            if (!response.ok) {
-                throw new Error(`Error fetching page: ${response.statusText}`);
-            }
-            const html = yield response.text();
-            const $ = load(html);
-            const ogImage = $('meta[property="og:image"]').attr("content");
-            return ogImage || null;
-        }
-        catch (error) {
-            console.error("Error fetching OG image:", error);
-            return null;
-        }
-    });
-}
-function uploadImage(imageUrl) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const response = yield fetch(imageUrl);
-            if (!response.ok) {
-                throw new Error(`Error fetching image: ${response.statusText}`);
-            }
-            const arrayBuffer = yield response.arrayBuffer();
-            const imageBuffer = Buffer.from(arrayBuffer);
-            const blob = yield agent.uploadBlob(imageBuffer, {
-                encoding: "image/jpeg",
-            });
-            return blob.data.blob;
-        }
-        catch (error) {
-            console.error("Error uploading image:", error);
-            return null;
+            console.error("Error on running blue bot:", error);
         }
     });
 }
@@ -87,18 +45,17 @@ function postLink() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (currentIndex >= links.length) {
-                console.log("The job is done. Nothing left to post.");
+                console.log("Everything is posted.");
                 return;
             }
-            yield agent.login({
-                identifier: process.env.BLUESKY_USERNAME,
-                password: process.env.BLUESKY_PASSWORD,
-            });
             const linkToPost = links[currentIndex];
             const ogImage = yield getOgImage(linkToPost);
             let thumbBlobRef = null;
             if (ogImage) {
-                thumbBlobRef = yield uploadImage(ogImage);
+                const uploadedBlob = yield uploadImage(agent, ogImage);
+                if (uploadedBlob) {
+                    thumbBlobRef = uploadedBlob;
+                }
             }
             const textToPost = `Welcome to the Blue Gallery on Europeana: ${linkToPost}`;
             const byteStart = textToPost.indexOf(linkToPost);
@@ -117,43 +74,21 @@ function postLink() {
                     ],
                 },
             ];
-            if (thumbBlobRef) {
-                yield agent.post({
-                    $type: "app.bsky.feed.post",
-                    text: textToPost,
-                    facets: facets,
-                    embed: {
-                        $type: "app.bsky.embed.external",
-                        external: {
-                            uri: linkToPost,
-                            title: "Blue | Gallery on Europeana",
-                            description: "In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.",
-                            thumb: thumbBlobRef,
-                        },
-                    },
-                    createdAt: new Date().toISOString(),
-                });
-            }
-            else {
-                yield agent.post({
-                    text: textToPost,
-                    facets: facets,
-                    createdAt: new Date().toISOString(),
-                });
-            }
-            console.log(`Check the posted link: ${linkToPost}`);
+            yield postToBsky(agent, textToPost, facets, thumbBlobRef ? {
+                $type: "app.bsky.embed.external",
+                external: {
+                    uri: linkToPost,
+                    title: "Blue 💙 Gallery on Europeana",
+                    description: "In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.",
+                    thumb: thumbBlobRef,
+                },
+            } : undefined);
+            console.log(`The link was posted: ${linkToPost}`);
             currentIndex++;
         }
         catch (error) {
-            console.error("An error occured:", error);
+            console.error("Error on posting link:", error);
         }
     });
 }
-initializeLinks().then(() => {
-    if (links.length > 0) {
-        postLink();
-    }
-    else {
-        console.log("Go and drink some water, please.");
-    }
-});
+runBlueBot();
