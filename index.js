@@ -7,17 +7,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import dotenv from "dotenv";
 import pkg from '@atproto/api';
-import { initializeLinks } from "./services/europeanaService.js";
-import { getOgImage } from "./services/ogImageService.js";
-import { uploadImage } from "./services/blobService.js";
-import { loginToBsky, postToBsky } from "./services/bskyService.js";
-import { CronJob } from "cron";
+import { CronJob } from 'cron';
+import dotenv from 'dotenv';
+import { uploadImage } from './services/blobService.js';
+import { loginToBsky, postToBsky } from './services/bskyService.js';
+import { initializeLinks } from './services/europeanaService.js';
+import { getOgImage } from './services/ogImageService.js';
 dotenv.config();
 const { BskyAgent } = pkg;
 const agent = new BskyAgent({
-    service: "https://bsky.social",
+    service: 'https://bsky.social',
 });
 let links = [];
 let currentIndex = 0;
@@ -26,7 +26,6 @@ function runBlueBot() {
         try {
             links = yield initializeLinks(process.env.EUROPEANA_API_KEY);
             if (links.length === 0) {
-                console.log("No links to post.");
                 return;
             }
             yield loginToBsky(agent, process.env.BLUESKY_USERNAME, process.env.BLUESKY_PASSWORD);
@@ -34,10 +33,9 @@ function runBlueBot() {
                 yield postLink();
             }));
             job.start();
-            console.log("Blue Bot is on fire!");
         }
         catch (error) {
-            console.error("Error on running blue bot:", error);
+            console.error('Error on running blue bot:', error);
         }
     });
 }
@@ -45,7 +43,6 @@ function postLink() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             if (currentIndex >= links.length) {
-                console.log("Everything is posted.");
                 return;
             }
             const linkToPost = links[currentIndex];
@@ -63,31 +60,32 @@ function postLink() {
             const facets = [
                 {
                     index: {
-                        byteStart: byteStart,
-                        byteEnd: byteEnd,
+                        byteStart,
+                        byteEnd,
                     },
                     features: [
                         {
-                            $type: "app.bsky.richtext.facet#link",
+                            $type: 'app.bsky.richtext.facet#link',
                             uri: linkToPost,
                         },
                     ],
                 },
             ];
-            yield postToBsky(agent, textToPost, facets, thumbBlobRef ? {
-                $type: "app.bsky.embed.external",
-                external: {
-                    uri: linkToPost,
-                    title: "Blue 💙 Gallery on Europeana",
-                    description: "In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.",
-                    thumb: thumbBlobRef,
-                },
-            } : undefined);
-            console.log(`The link was posted: ${linkToPost}`);
+            yield postToBsky(agent, textToPost, facets, thumbBlobRef
+                ? {
+                    $type: 'app.bsky.embed.external',
+                    external: {
+                        uri: linkToPost,
+                        title: 'Blue 💙 Gallery on Europeana',
+                        description: 'In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.',
+                        thumb: thumbBlobRef,
+                    },
+                }
+                : undefined);
             currentIndex++;
         }
         catch (error) {
-            console.error("Error on posting link:", error);
+            console.error('Error on posting link:', error);
         }
     });
 }

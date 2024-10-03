@@ -7,8 +7,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import fetch from "node-fetch";
-import { load } from "cheerio";
+import { load } from 'cheerio';
+import fetch from 'node-fetch';
 export function getOgImage(link) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -18,11 +18,11 @@ export function getOgImage(link) {
             }
             const html = yield response.text();
             const $ = load(html);
-            const ogImage = $('meta[property="og:image"]').attr("content");
+            const ogImage = $('meta[property="og:image"]').attr('content');
             return ogImage || null;
         }
         catch (error) {
-            console.error("Error fetching OG image:", error);
+            console.error('Error fetching OG image:', error);
             return null;
         }
     });

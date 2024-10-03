@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 export function uploadImage(agent, imageUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -21,7 +21,7 @@ export function uploadImage(agent, imageUrl) {
             return blob.data.blob;
         }
         catch (error) {
-            console.error("Error uploading image:", error);
+            console.error('Error uploading image:', error);
             return null;
         }
     });

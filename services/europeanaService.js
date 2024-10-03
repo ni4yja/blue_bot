@@ -7,16 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 export function initializeLinks(apiKey) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const params = {
-                page: "0",
-                pageSize: "22",
+                page: '0',
+                pageSize: '22',
                 wskey: apiKey,
             };
-            const baseUrl = "https://api.europeana.eu/set/9109";
+            const baseUrl = 'https://api.europeana.eu/set/9109';
             const url = `${baseUrl}?${new URLSearchParams(params).toString()}`;
             const response = yield fetch(url);
             if (!response.ok) {
@@ -24,15 +24,14 @@ export function initializeLinks(apiKey) {
             }
             const data = (yield response.json());
             if (data.items && data.items.length > 0) {
-                return data.items.map((link) => link.replace("http://data.europeana.eu/", "https://www.europeana.eu/"));
+                return data.items.map(link => link.replace('http://data.europeana.eu/', 'https://www.europeana.eu/'));
             }
             else {
-                console.log("No links to publish.");
                 return [];
             }
         }
         catch (error) {
-            console.error("Error initializing links from Europeana:", error);
+            console.error('Error initializing links from Europeana:', error);
             return [];
         }
     });

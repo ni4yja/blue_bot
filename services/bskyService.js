@@ -7,37 +7,33 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import pkg from "@atproto/api";
-const { BskyAgent } = pkg;
 export function loginToBsky(agent, username, password) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             yield agent.login({
                 identifier: username,
-                password: password,
+                password,
             });
-            console.log("Login successful.");
         }
         catch (error) {
-            console.error("Error on login:", error);
+            console.error('Error on login:', error);
             throw error;
         }
     });
 }
-export function postToBsky(agent_1, text_1) {
-    return __awaiter(this, arguments, void 0, function* (agent, text, facets = [], embed) {
+export function postToBsky(agent, text, facets = [], embed) {
+    return __awaiter(this, void 0, void 0, function* () {
         try {
             yield agent.post({
-                $type: "app.bsky.feed.post",
-                text: text,
+                $type: 'app.bsky.feed.post',
+                text,
                 facets: facets.length > 0 ? facets : undefined,
-                embed: embed,
+                embed,
                 createdAt: new Date().toISOString(),
             });
-            console.log("Congrats! Post successfully created.");
         }
         catch (error) {
-            console.error("Error on post:", error);
+            console.error('Error on post:', error);
         }
     });
 }
