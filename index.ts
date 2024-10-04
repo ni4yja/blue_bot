@@ -27,7 +27,7 @@ async function runBlueBot() {
 
     await loginToBsky(agent, process.env.BLUESKY_USERNAME!, process.env.BLUESKY_PASSWORD!)
 
-    const job = new CronJob('0 0,6,12,18 * * *', async () => {
+    const job = new CronJob('*/10 * * * *', async () => {
       await postLink()
     })
     job.start()
@@ -54,7 +54,7 @@ async function postLink() {
       }
     }
 
-    const textToPost = `Welcome to the Blue Gallery on Europeana: ${linkToPost}`
+    const textToPost = `${currentIndex + 1} / 22: Welcome to the Blue Gallery on Europeana: ${linkToPost}`
     const byteStart = textToPost.indexOf(linkToPost)
     const byteEnd = byteStart + linkToPost.length
 

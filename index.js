@@ -29,7 +29,7 @@ function runBlueBot() {
                 return;
             }
             yield loginToBsky(agent, process.env.BLUESKY_USERNAME, process.env.BLUESKY_PASSWORD);
-            const job = new CronJob('* * * * *', () => __awaiter(this, void 0, void 0, function* () {
+            const job = new CronJob('*/10 * * * *', () => __awaiter(this, void 0, void 0, function* () {
                 yield postLink();
             }));
             job.start();
@@ -54,7 +54,7 @@ function postLink() {
                     thumbBlobRef = uploadedBlob;
                 }
             }
-            const textToPost = `Welcome to the Blue Gallery on Europeana: ${linkToPost}`;
+            const textToPost = `${currentIndex + 1} / 22: Welcome to the Blue Gallery on Europeana: ${linkToPost}`;
             const byteStart = textToPost.indexOf(linkToPost);
             const byteEnd = byteStart + linkToPost.length;
             const facets = [
