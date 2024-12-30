@@ -27,7 +27,7 @@ async function runBlueBot() {
 
     await loginToBsky(agent, process.env.BLUESKY_USERNAME!, process.env.BLUESKY_PASSWORD!)
 
-    const job = new CronJob('* * * * *', async () => {
+    const job = new CronJob('*/10 * * * *', async () => {
       await postLink()
     })
     job.start()
