@@ -1,6 +1,23 @@
 import { load } from 'cheerio';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
+/**
+ * Logger utility to standardize logging across the service
+ */
+const logger = {
+    info: (message) => {
+        // eslint-disable-next-line no-console
+        console.log(`[INFO] ${message}`);
+    },
+    error: (message, error) => {
+        const errorMessage = error instanceof Error ? error.message : String(error || '');
+        console.error(`[ERROR] ${message}${errorMessage ? `: ${errorMessage}` : ''}`);
+    },
+    debug: (message) => {
+        // eslint-disable-next-line no-console
+        console.debug(`[DEBUG] ${message}`);
+    },
+};
 // Load environment variables
 dotenv.config();
 // Europeana API key
@@ -53,7 +70,7 @@ function parseEuropeanaId(url) {
         return null;
     }
     catch (error) {
-        console.error(`Error parsing URL: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error('Error parsing URL', error);
         return null;
     }
 }
@@ -64,11 +81,11 @@ function parseEuropeanaId(url) {
  */
 async function fetchEuropeanaImage(recordId) {
     if (!EUROPEANA_API_KEY) {
-        console.error('EUROPEANA_API_KEY is not set in environment variables');
+        logger.error('EUROPEANA_API_KEY is not set in environment variables');
         return null;
     }
     const apiUrl = `https://api.europeana.eu/record/${recordId}.json?wskey=${EUROPEANA_API_KEY}`;
-    console.log(`Fetching from Europeana API: ${apiUrl}`);
+    logger.info(`Fetching from Europeana API: ${apiUrl}`);
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
@@ -79,29 +96,29 @@ async function fetchEuropeanaImage(recordId) {
             throw new EuropeanaApiError(`Europeana API returned error: ${data.error}`);
         }
         if (!data.object || !data.object.aggregations || !data.object.aggregations.length) {
-            console.log('No aggregations found in Europeana API response');
+            logger.info('No aggregations found in Europeana API response');
             return null;
         }
         const aggregation = data.object.aggregations[0];
         // First try high-quality image
         if (aggregation.edmIsShownBy) {
-            console.log(`Found high-quality image: ${aggregation.edmIsShownBy}`);
+            logger.info(`Found high-quality image: ${aggregation.edmIsShownBy}`);
             return aggregation.edmIsShownBy;
         }
         // Fall back to preview image
         if (aggregation.edmPreview) {
-            console.log(`Found preview image: ${aggregation.edmPreview}`);
+            logger.info(`Found preview image: ${aggregation.edmPreview}`);
             return aggregation.edmPreview;
         }
-        console.log('No image URLs found in Europeana API response');
+        logger.info('No image URLs found in Europeana API response');
         return null;
     }
     catch (error) {
         if (error instanceof EuropeanaApiError) {
-            console.error(`Europeana API error: ${error.message}`);
+            logger.error('Europeana API error', error);
         }
         else {
-            console.error(`Error fetching from Europeana API: ${error instanceof Error ? error.message : String(error)}`);
+            logger.error('Error fetching from Europeana API', error);
         }
         return null;
     }
@@ -114,27 +131,22 @@ async function fetchEuropeanaImage(recordId) {
  */
 async function fetchOgImageFromHtml(url, useHttps = false) {
     const fetchUrl = useHttps ? url.replace('http:', 'https:') : url;
-    console.log(`Fetching page: ${fetchUrl} ${useHttps ? '(HTTPS retry)' : ''}`);
-    try {
-        const response = await fetch(fetchUrl, { headers: browserHeaders });
-        console.log(`Response status: ${response.status} ${response.statusText}`);
-        if (!response.ok) {
-            throw new FetchError(`Error fetching page: Status ${response.status} - ${response.statusText}`, response.status, response.statusText, fetchUrl);
-        }
-        const html = await response.text();
-        const $ = load(html);
-        const ogImage = $('meta[property="og:image"]').attr('content');
-        if (ogImage) {
-            console.log(`Found OG image: ${ogImage}`);
-            return ogImage;
-        }
-        console.log('No OG image found in HTML metadata');
-        return null;
+    logger.info(`Fetching page: ${fetchUrl} ${useHttps ? '(HTTPS retry)' : ''}`);
+    // No need for the try/catch wrapper since we're just rethrowing the error
+    const response = await fetch(fetchUrl, { headers: browserHeaders });
+    logger.info(`Response status: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+        throw new FetchError(`Error fetching page: Status ${response.status} - ${response.statusText}`, response.status, response.statusText, fetchUrl);
     }
-    catch (error) {
-        // Let the calling function handle the error for retry logic
-        throw error;
+    const html = await response.text();
+    const $ = load(html);
+    const ogImage = $('meta[property="og:image"]').attr('content');
+    if (ogImage) {
+        logger.info(`Found OG image: ${ogImage}`);
+        return ogImage;
     }
+    logger.info('No OG image found in HTML metadata');
+    return null;
 }
 /**
  * Get OG image from a URL
@@ -144,11 +156,11 @@ async function fetchOgImageFromHtml(url, useHttps = false) {
  * @returns OG image URL or null if not found
  */
 export async function getOgImage(link) {
-    console.log(`Attempting to fetch OG image from: ${link}`);
+    logger.info(`Attempting to fetch OG image from: ${link}`);
     // Check if this is a Europeana URL
     const europeanaId = parseEuropeanaId(link);
     if (europeanaId) {
-        console.log(`Detected Europeana item with ID: ${europeanaId}`);
+        logger.info(`Detected Europeana item with ID: ${europeanaId}`);
         return await fetchEuropeanaImage(europeanaId);
     }
     // Not a Europeana URL, try normal OG image extraction
@@ -160,28 +172,28 @@ export async function getOgImage(link) {
         if (error instanceof FetchError
             && link.startsWith('http:')
             && !link.startsWith('https:')) {
-            console.log('HTTP request failed, retrying with HTTPS');
+            logger.info('HTTP request failed, retrying with HTTPS');
             try {
                 return await fetchOgImageFromHtml(link, true);
             }
             catch (httpsError) {
-                console.error(`HTTPS retry also failed: ${httpsError instanceof Error ? httpsError.message : String(httpsError)}`);
+                logger.error('HTTPS retry also failed', httpsError);
                 return null;
             }
         }
         // Handle network errors with more specific messages
         const typedError = error;
         if (typedError.code === 'ENOTFOUND') {
-            console.error(`DNS lookup failed for ${link}: Host not found`);
+            logger.error(`DNS lookup failed for ${link}: Host not found`);
         }
         else if (typedError.code === 'ETIMEDOUT') {
-            console.error(`Connection timed out for ${link}`);
+            logger.error(`Connection timed out for ${link}`);
         }
         else if (typedError.type === 'invalid-json') {
-            console.error(`Invalid JSON response from ${link}`);
+            logger.error(`Invalid JSON response from ${link}`);
         }
         else {
-            console.error(`Error fetching OG image from ${link}: ${typedError.message || 'Unknown error'}`);
+            logger.error(`Error fetching OG image from ${link}`, error);
         }
         return null;
     }

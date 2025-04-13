@@ -4,12 +4,10 @@
     "target": "ES2022",
     "lib": ["ES2022"],
 
-    /* Modules */
+    "rootDir": "./",
+    /* Module Resolution */
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "rootDir": "./",
-    "outDir": "./dist",
-    "resolveJsonModule": true,
 
     /* JavaScript Support */
     "allowJs": true,
@@ -19,38 +17,22 @@
     "strict": true,
 
     /* Emit */
-    "sourceMap": true,
     "declaration": false,
-    "emitDeclarationOnly": false,
     "noEmit": false,
+    "outDir": "./dist",
+    "sourceMap": true,
 
-    /* Module Resolution */
-    "moduleDetection": "force",
+    "allowSyntheticDefaultImports": true,
     /* Interop Constraints */
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-
-    /* Extension Mapping */
-    "paths": {
-      "*": ["./node_modules/*", "./*"]
-    }
+    "skipLibCheck": true
   },
   "ts-node": {
     "esm": true,
     "transpileOnly": true,
-    "experimentalSpecifierResolution": "node",
-    "compilerOptions": {
-      "module": "NodeNext",
-      "moduleResolution": "NodeNext"
-    }
+    "experimentalSpecifierResolution": "node"
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

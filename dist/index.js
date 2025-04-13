@@ -1,12 +1,13 @@
 // Third-party package imports
 import atprotoApi from '@atproto/api';
-const { BskyAgent } = atprotoApi;
 import * as dotenv from 'dotenv';
 // Local service imports with explicit .js extensions (required for ESM)
 import { uploadImage } from './services/blobService.js';
 import { loginToBsky, postToBsky } from './services/bskyService.js';
 import { initializeLinks } from './services/europeanaService.js';
 import { getOgImage } from './services/ogImageService.js';
+// Extract BskyAgent from the API package
+const { BskyAgent } = atprotoApi;
 dotenv.config();
 const agent = new BskyAgent({
     service: 'https://bsky.social',
@@ -27,7 +28,8 @@ async function runBlueBot() {
         // job.start()
     }
     catch (error) {
-        console.error('Error on running blue bot:', error);
+        // Log errors in a consistent way
+        console.error('Error on running blue bot:', error instanceof Error ? error.message : String(error));
     }
 }
 async function postLink() {
@@ -75,7 +77,7 @@ async function postLink() {
         currentIndex++;
     }
     catch (error) {
-        console.error('Error on posting link:', error);
+        console.error('Error on posting link:', error instanceof Error ? error.message : String(error));
     }
 }
 runBlueBot();

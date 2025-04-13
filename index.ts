@@ -9,6 +9,7 @@ import { loginToBsky, postToBsky } from './services/bskyService.js'
 import { initializeLinks } from './services/europeanaService.js'
 import { getOgImage } from './services/ogImageService.js'
 
+// Extract BskyAgent from the API package
 const { BskyAgent } = atprotoApi
 
 dotenv.config()
@@ -36,7 +37,8 @@ async function runBlueBot() {
     // job.start()
   }
   catch (error) {
-    console.error('Error on running blue bot:', error)
+    // Log errors in a consistent way
+    console.error('Error on running blue bot:', error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -91,7 +93,7 @@ async function postLink() {
     currentIndex++
   }
   catch (error) {
-    console.error('Error on posting link:', error)
+    console.error('Error on posting link:', error instanceof Error ? error.message : String(error))
   }
 }
 
