@@ -1,14 +1,17 @@
-import pkg from '@atproto/api'
+// Third-party package imports
+import atprotoApi from '@atproto/api'
 import { CronJob } from 'cron'
-import dotenv from 'dotenv'
+import * as dotenv from 'dotenv'
+
+// Local service imports with explicit .js extensions (required for ESM)
 import { uploadImage } from './services/blobService.js'
 import { loginToBsky, postToBsky } from './services/bskyService.js'
 import { initializeLinks } from './services/europeanaService.js'
 import { getOgImage } from './services/ogImageService.js'
 
-dotenv.config()
+const { BskyAgent } = atprotoApi
 
-const { BskyAgent } = pkg
+dotenv.config()
 
 const agent = new BskyAgent({
   service: 'https://bsky.social',
@@ -26,11 +29,11 @@ async function runBlueBot() {
     }
 
     await loginToBsky(agent, process.env.BLUESKY_USERNAME!, process.env.BLUESKY_PASSWORD!)
-
-    const job = new CronJob('* * * * *', async () => {
-      await postLink()
-    })
-    job.start()
+    await postLink()
+    // const job = new CronJob('* * * * *', async () => {
+    //   await postLink()
+    // })
+    // job.start()
   }
   catch (error) {
     console.error('Error on running blue bot:', error)
