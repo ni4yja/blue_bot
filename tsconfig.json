@@ -1,38 +1,13 @@
 {
   "compilerOptions": {
-    /* Language and Environment */
-    "target": "ES2022",
-    "lib": ["ES2022"],
-
-    "rootDir": "./",
-    /* Module Resolution */
+    "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-
-    /* JavaScript Support */
-    "allowJs": true,
-    "checkJs": false,
-
-    /* Type Checking */
-    "strict": true,
-
-    /* Emit */
-    "declaration": false,
-    "noEmit": false,
-    "outDir": "./dist",
-    "sourceMap": true,
-
+    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    /* Interop Constraints */
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "esModuleInterop": true
   },
   "ts-node": {
-    "esm": true,
-    "transpileOnly": true,
-    "experimentalSpecifierResolution": "node"
-  },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+    "esm": true
+  }
 }
