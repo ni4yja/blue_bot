@@ -5,3 +5,5 @@ article-db
 .vscode
 .env
 *.log
+services/*.js
+index.js
