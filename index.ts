@@ -1,15 +1,12 @@
-// Third-party package imports
 import atprotoApi from '@atproto/api'
 import { CronJob } from 'cron'
 import * as dotenv from 'dotenv'
 
-// Local service imports with explicit .js extensions (required for ESM)
 import { uploadImage } from './services/blobService.js'
 import { loginToBsky, postToBsky } from './services/bskyService.js'
 import { initializeLinks } from './services/europeanaService.js'
-import { getOgImage } from './services/ogImageService.js'
+import { getOgMetadata } from './services/ogMetadataService.js'
 
-// Extract BskyAgent from the API package
 const { BskyAgent } = atprotoApi
 
 dotenv.config()
@@ -37,7 +34,6 @@ async function runBlueBot() {
     // job.start()
   }
   catch (error) {
-    // Log errors in a consistent way
     console.error('Error on running blue bot:', error instanceof Error ? error.message : String(error))
   }
 }
@@ -49,7 +45,7 @@ async function postLink() {
     }
 
     const linkToPost = links[currentIndex]
-    const ogImage = await getOgImage(linkToPost)
+    const { image: ogImage, title, description } = await getOgMetadata(linkToPost) || {}
 
     let thumbBlobRef = null
     if (ogImage) {
@@ -59,7 +55,7 @@ async function postLink() {
       }
     }
 
-    const textToPost = `Welcome to the Blue Gallery on Europeana: ${linkToPost}`
+    const textToPost = `${title || 'Blue 💙 Gallery'}: ${linkToPost}`
     const byteStart = textToPost.indexOf(linkToPost)
     const byteEnd = byteStart + linkToPost.length
 
@@ -83,8 +79,8 @@ async function postLink() {
           $type: 'app.bsky.embed.external',
           external: {
             uri: linkToPost,
-            title: 'Blue 💙 Gallery on Europeana',
-            description: 'In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.',
+            title: title || 'Blue 💙 Gallery on Europeana',
+            description: description || 'In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.',
             thumb: thumbBlobRef,
           },
         }
