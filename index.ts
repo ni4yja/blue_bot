@@ -1,19 +1,8 @@
-import atprotoApi from '@atproto/api'
-import { CronJob } from 'cron'
 import * as dotenv from 'dotenv'
-
-import { uploadImage } from './services/blobService.js'
-import { loginToBsky, postToBsky } from './services/bskyService.js'
 import { initializeLinks } from './services/europeanaService.js'
 import { getOgMetadata } from './services/ogMetadataService.js'
 
-const { BskyAgent } = atprotoApi
-
 dotenv.config()
-
-const agent = new BskyAgent({
-  service: 'https://bsky.social',
-})
 
 let links: string[] = []
 let currentIndex = 0
@@ -23,74 +12,35 @@ async function runBlueBot() {
     links = await initializeLinks(process.env.EUROPEANA_API_KEY!)
 
     if (links.length === 0) {
+      console.warn('❗ No links found.')
       return
     }
 
-    await loginToBsky(agent, process.env.BLUESKY_USERNAME!, process.env.BLUESKY_PASSWORD!)
-    await postLink()
-    // const job = new CronJob('* * * * *', async () => {
-    //   await postLink()
-    // })
-    // job.start()
+    console.log(`✅ Loaded ${links.length} links from Europeana.\n`)
+    await processNextLink()
   }
   catch (error) {
-    console.error('Error on running blue bot:', error instanceof Error ? error.message : String(error))
+    console.error('Error running blue bot:', error instanceof Error ? error.message : String(error))
   }
 }
 
-async function postLink() {
-  try {
-    if (currentIndex >= links.length) {
-      return
-    }
-
-    const linkToPost = links[currentIndex]
-    const { image: ogImage, title, description } = await getOgMetadata(linkToPost) || {}
-
-    let thumbBlobRef = null
-    if (ogImage) {
-      const uploadedBlob = await uploadImage(agent, ogImage)
-      if (uploadedBlob) {
-        thumbBlobRef = uploadedBlob
-      }
-    }
-
-    const textToPost = `${title || 'Blue 💙 Gallery'}: ${linkToPost}`
-    const byteStart = textToPost.indexOf(linkToPost)
-    const byteEnd = byteStart + linkToPost.length
-
-    const facets = [
-      {
-        index: {
-          byteStart,
-          byteEnd,
-        },
-        features: [
-          {
-            $type: 'app.bsky.richtext.facet#link',
-            uri: linkToPost,
-          },
-        ],
-      },
-    ]
-
-    await postToBsky(agent, textToPost, facets, thumbBlobRef
-      ? {
-          $type: 'app.bsky.embed.external',
-          external: {
-            uri: linkToPost,
-            title: title || 'Blue 💙 Gallery on Europeana',
-            description: description || 'In this gallery, we explore the colour blue - the colour of the sea, the sky, sorrow and safety.',
-            thumb: thumbBlobRef,
-          },
-        }
-      : undefined)
-
-    currentIndex++
+async function processNextLink() {
+  if (currentIndex >= 1) {
+    console.log('✅ All links processed.')
+    return
   }
-  catch (error) {
-    console.error('Error on posting link:', error instanceof Error ? error.message : String(error))
-  }
+
+  const linkToPost = links[currentIndex]
+  const { image, title, description } = await getOgMetadata(linkToPost)
+
+  console.log(`🔹 ${currentIndex + 1}/${links.length}`)
+  console.log('📎 Link:', linkToPost)
+  console.log('🖼️ Image:', image)
+  console.log('📝 Title:', title)
+  console.log('📝 Description:', description)
+
+  currentIndex++
+  await processNextLink() // обробка наступного посилання
 }
 
 runBlueBot()
