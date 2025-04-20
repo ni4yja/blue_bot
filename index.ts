@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv'
 import { initializeLinks } from './services/europeanaService.js'
-import { getOgMetadata } from './services/ogMetadataService.js'
+import { getOgMetadata } from './sources/getOgMetadata.js'
 
 dotenv.config()
 
@@ -25,7 +25,7 @@ async function runBlueBot() {
 }
 
 async function processNextLink() {
-  if (currentIndex >= 1) {
+  if (currentIndex >= links.length) {
     console.log('✅ All links processed.')
     return
   }
