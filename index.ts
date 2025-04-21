@@ -33,11 +33,11 @@ async function processNextLink() {
   const linkToPost = links[currentIndex]
   const { image, title, description } = await getOgMetadata(linkToPost)
 
-  console.log(`🔹 ${currentIndex + 1}/${links.length}`)
-  console.log('📎 Link:', linkToPost)
-  console.log('🖼️ Image:', image)
-  console.log('📝 Title:', title)
-  console.log('📝 Description:', description)
+  // console.log(`🔹 ${currentIndex + 1}/${links.length}`)
+  // console.log('📎 Link:', linkToPost)
+  // console.log('🖼️ Image:', image)
+  // console.log('📝 Title:', title)
+  // console.log('📝 Description:', description)
 
   currentIndex++
   await processNextLink() // обробка наступного посилання
