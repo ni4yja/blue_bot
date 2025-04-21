@@ -1,6 +1,7 @@
 import type { OgMetadata } from './getOgMetadata.js'
 import fetch from 'node-fetch'
 import { extractMultilangValue, resolveThumbnail } from '../utils/extract.js'
+import { translateText } from '../utils/translate.js'
 
 interface EuropeanaV3Proxy {
   id?: string
@@ -37,12 +38,13 @@ export async function fetchFromEuropeanaV3Api(datasetId: string, recordId: strin
 
     const title = extractMultilangValue(providerProxy?.title, 'en')
 
+    const rawDescription = extractMultilangValue(providerProxy?.description)
+    const originalLang = providerProxy?.description?.[0]?.['@language'] || 'unknown'
+
     let description = extractMultilangValue(providerProxy?.description, 'en')
-    if (!description) {
-      description = extractMultilangValue(providerProxy?.description)
-    }
-    if (!description) {
-      description = 'No description available.'
+
+    if (!description || originalLang !== 'en') {
+      description = rawDescription ? await translateText(rawDescription) : undefined
     }
 
     const rawImage

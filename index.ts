@@ -1,6 +1,8 @@
 import * as dotenv from 'dotenv'
 import { initializeLinks } from './services/europeanaService.js'
 import { getOgMetadata } from './sources/getOgMetadata.js'
+import { formatPostData } from './utils/format.js'
+import { translateText } from './utils/translate.js'
 
 dotenv.config()
 
@@ -16,7 +18,6 @@ async function runBlueBot() {
       return
     }
 
-    console.log(`✅ Loaded ${links.length} links from Europeana.\n`)
     await processNextLink()
   }
   catch (error) {
@@ -25,22 +26,30 @@ async function runBlueBot() {
 }
 
 async function processNextLink() {
-  if (currentIndex >= links.length) {
-    console.log('✅ All links processed.')
+  if (currentIndex >= 2) {
     return
   }
 
   const linkToPost = links[currentIndex]
   const { image, title, description } = await getOgMetadata(linkToPost)
 
-  // console.log(`🔹 ${currentIndex + 1}/${links.length}`)
-  // console.log('📎 Link:', linkToPost)
-  // console.log('🖼️ Image:', image)
-  // console.log('📝 Title:', title)
-  // console.log('📝 Description:', description)
+  const translatedTitle = title ? await translateText(title) : undefined
+  const translatedDescription = description ? await translateText(description) : undefined
+
+  const { title: formattedTitle, description: formattedDescription } = formatPostData(
+    translatedTitle,
+    translatedDescription,
+    linkToPost,
+  )
+
+  console.log('🔹', `${currentIndex + 1}/${links.length}`)
+  console.log('📎 Link:', linkToPost)
+  console.log('🖼️ Image:', image)
+  console.log('📝 Title:', formattedTitle)
+  console.log('📝 Description:', formattedDescription)
 
   currentIndex++
-  await processNextLink() // обробка наступного посилання
+  await processNextLink()
 }
 
 runBlueBot()
