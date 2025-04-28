@@ -7,7 +7,7 @@ interface BlueCollection {
 export async function initializeLinks(apiKey: string): Promise<string[]> {
   try {
     const params = new URLSearchParams({
-      page: '0',
+      page: '1',
       pageSize: '22',
       profile: 'itemDescriptions',
       wskey: apiKey,

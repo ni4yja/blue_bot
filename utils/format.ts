@@ -1,15 +1,26 @@
-export function formatPostData(title: string, description: string, link: string): { title: string, description: string } {
-  const MAX_TOTAL_LENGTH = 300
-  const linkLength = link.length
-  const spaceForText = MAX_TOTAL_LENGTH - linkLength - 10 // запас для емодзі, префіксів
+export function formatPostData(
+  title?: string,
+  description?: string,
+  link?: string,
+) {
+  const maxLength = 300
+  const safeTitle = title || ''
+  const safeDescription = description || ''
+  const safeLink = link || ''
 
-  const trimmedTitle = title.length > 100 ? `${title.slice(0, 100)}…` : title
-  const spaceForDescription = spaceForText - trimmedTitle.length
+  const availableLength = maxLength - safeLink.length - 5 // запас для пробілу або роздільника
+  let fullText = `${safeTitle}: ${safeDescription}`
 
-  let trimmedDescription = description
-  if (description.length > spaceForDescription) {
-    trimmedDescription = `${description.slice(0, spaceForDescription - 1).trim()}…`
+  if (fullText.length > availableLength) {
+    fullText = `${fullText.slice(0, availableLength - 1)}…`
   }
 
-  return { title: trimmedTitle, description: trimmedDescription }
+  const splitIndex = fullText.indexOf(': ')
+  const finalTitle = splitIndex !== -1 ? fullText.slice(0, splitIndex) : fullText
+  const finalDescription = splitIndex !== -1 ? fullText.slice(splitIndex + 2) : ''
+
+  return {
+    title: finalTitle.trim(),
+    description: finalDescription.trim(),
+  }
 }
