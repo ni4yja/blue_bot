@@ -7,3 +7,5 @@ article-db
 *.log
 services/*.js
 index.js
+storage/posts.json
+storage/posted.json

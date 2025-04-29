@@ -1,21 +1,20 @@
-import type { BskyAgent } from '@atproto/api'
+import type { AtpAgent, BlobRef } from '@atproto/api'
 import fetch from 'node-fetch'
 
-export async function uploadImage(agent: BskyAgent, imageUrl: string) {
+export async function uploadImage(agent: AtpAgent, imageUrl: string): Promise<BlobRef | undefined> {
   try {
-    const response = await fetch(imageUrl)
-    if (!response.ok) {
-      throw new Error(`Error fetching image: ${response.statusText}`)
-    }
+    const imageRes = await fetch(imageUrl)
+    if (!imageRes.ok)
+      throw new Error(`Failed to fetch image: ${imageRes.statusText}`)
 
-    const arrayBuffer = await response.arrayBuffer()
-    const imageBuffer = Buffer.from(arrayBuffer)
+    const buffer = await imageRes.arrayBuffer()
 
-    const blob = await agent.uploadBlob(imageBuffer, { encoding: 'image/jpeg' })
-    return blob.data.blob
+    const uploaded = await agent.com.atproto.repo.uploadBlob(new Uint8Array(buffer))
+
+    return uploaded.data.blob
   }
   catch (error) {
-    console.error('Error uploading image:', error)
-    return null
+    console.error('❌ Error uploading image:', error)
+    return undefined
   }
 }

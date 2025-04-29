@@ -24,3 +24,10 @@ export function formatPostData(
     description: finalDescription.trim(),
   }
 }
+
+export function sanitizeText(text: string): string {
+  return text
+    .replace(/[\n\r]+/g, ' ') // замінюємо переноси на пробіл
+    .replace(/\s{2,}/g, ' ') // замінюємо кілька пробілів одним
+    .trim()
+}
