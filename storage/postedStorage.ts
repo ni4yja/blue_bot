@@ -10,7 +10,14 @@ export interface PostedRecord {
 export async function loadPosted(): Promise<PostedRecord[]> {
   try {
     const file = await fs.readFile(FILE_PATH, 'utf-8')
-    return JSON.parse(file)
+    const parsed = JSON.parse(file)
+
+    if (!Array.isArray(parsed)) {
+      console.warn('⚠️ posted.json is not an array. Resetting to empty array.')
+      return []
+    }
+
+    return parsed
   }
   catch (error) {
     console.warn('⚠️ No posted.json found, starting fresh.', error)

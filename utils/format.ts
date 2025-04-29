@@ -4,20 +4,20 @@ export function formatPostData(
   link?: string,
 ) {
   const maxLength = 300
-  const safeTitle = title || ''
-  const safeDescription = description || ''
-  const safeLink = link || ''
+  const cleanTitle = title || ''
+  const cleanDescription = (description && description !== 'No description available.') ? description : ''
+  const cleanLink = link ? stripTrackingParams(link) : ''
 
-  const availableLength = maxLength - safeLink.length - 5 // запас для пробілу або роздільника
-  let fullText = `${safeTitle}: ${safeDescription}`
+  const parts = [cleanTitle, cleanDescription, cleanLink].filter(Boolean)
+  let fullText = parts.join('\n\n')
 
-  if (fullText.length > availableLength) {
-    fullText = `${fullText.slice(0, availableLength - 1)}…`
+  if (fullText.length > maxLength) {
+    fullText = `${fullText.slice(0, maxLength - 1)}…`
   }
 
-  const splitIndex = fullText.indexOf(': ')
-  const finalTitle = splitIndex !== -1 ? fullText.slice(0, splitIndex) : fullText
-  const finalDescription = splitIndex !== -1 ? fullText.slice(splitIndex + 2) : ''
+  // Розділяємо назад на title і description, якщо можливо
+  const [finalTitle, ...rest] = fullText.split('\n\n')
+  const finalDescription = rest.join('\n\n')
 
   return {
     title: finalTitle.trim(),
@@ -27,7 +27,21 @@ export function formatPostData(
 
 export function sanitizeText(text: string): string {
   return text
-    .replace(/[\n\r]+/g, ' ') // замінюємо переноси на пробіл
-    .replace(/\s{2,}/g, ' ') // замінюємо кілька пробілів одним
+    .replace(/\u2026/g, '...')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[^\x00-\xFF]/g, '')
     .trim()
+}
+
+function stripTrackingParams(url: string): string {
+  try {
+    const u = new URL(url)
+    u.searchParams.delete('utm_source')
+    u.searchParams.delete('utm_medium')
+    u.searchParams.delete('utm_campaign')
+    return u.toString()
+  }
+  catch {
+    return url
+  }
 }
