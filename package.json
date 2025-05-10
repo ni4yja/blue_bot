@@ -6,6 +6,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx index.ts",
+    "dry": "tsx index.ts --dry-run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -15,7 +16,8 @@
     "cron": "^3.1.0",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2",
-    "typescript": "^5.2.0"
+    "typescript": "^5.2.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.7.3",
