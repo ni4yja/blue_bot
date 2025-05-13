@@ -4,9 +4,10 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { loginToBsky, postToBsky } from './services/bskyService.js'
-import { resolveImageEmbed } from './services/imageService.js'
 import { addPosted, isAlreadyPosted, loadPosted } from './storage/postedStorage.js'
 import { loadPosts } from './storage/postStorage.js'
+import { addSkipped, isAlreadySkipped, loadSkipped } from './storage/skippedStorage.js'
+import { prepareImageEmbed } from './utils/embedHelper.js'
 import { formatPostData, sanitizeText } from './utils/format.js'
 import { logPostPayload } from './utils/logPostPayload.js'
 
@@ -36,6 +37,7 @@ async function runBlueBot() {
 
     const posts = await loadPosts()
     const posted = await loadPosted()
+    const skipped = await loadSkipped()
 
     function isValidImageUrl(url?: string): boolean {
       if (!url)
@@ -51,52 +53,63 @@ async function runBlueBot() {
       }
     }
 
-    const availablePosts = posts.filter(post =>
-      !isAlreadyPosted(posted, post.link)
-      && isValidImageUrl(post.image),
+    const candidates = posts.filter(p =>
+      !isAlreadyPosted(posted, p.link)
+      && !isAlreadySkipped(skipped, p.link)
+      && isValidImageUrl(p.image),
     )
 
-    if (availablePosts.length === 0) {
+    if (candidates.length === 0) {
       console.log('ℹ️ No new posts to publish.')
       return
     }
 
-    const randomPost = availablePosts[Math.floor(Math.random() * availablePosts.length)]
-
-    const { embed, debugInfo } = await resolveImageEmbed(
-      agent,
-      randomPost.image,
-      randomPost.link,
-      randomPost.title,
-      true,
-    )
-
-    const { title, description } = formatPostData(
-      randomPost.title,
-      randomPost.description,
-      randomPost.link,
-    )
-
-    const fullText = sanitizeText([title, description].filter(Boolean).join('\n\n'))
-
-    if (isDryRun) {
-      logPostPayload(fullText, embed, debugInfo)
+    function shuffle<T>(arr: T[]): T[] {
+      return [...arr].sort(() => Math.random() - 0.5)
     }
-    else {
-      try {
-        if (!embed?.images?.[0]?.image?.ref?.$link) {
-          console.warn('⚠️ Embed blob is missing or malformed — skipping post.')
-          return
+
+    const maxAttempts = candidates.length
+    let attempt = 0
+
+    for (const candidate of shuffle(candidates)) {
+      attempt++
+      console.log(`🔍 Attempt ${attempt}/${maxAttempts}: ${candidate.link}`)
+
+      const result = await prepareImageEmbed(agent, candidate)
+      if (!result)
+        continue
+
+      const { embed, debugInfo } = result
+
+      const { title, description } = formatPostData(
+        candidate.title,
+        candidate.description,
+        candidate.link,
+      )
+
+      const fullText = sanitizeText([title, description].filter(Boolean).join('\n\n'))
+
+      if (isDryRun) {
+        logPostPayload(fullText, embed, debugInfo)
+      }
+      else {
+        try {
+          await postToBsky(agent, fullText, embed)
+          console.log('✅ Post successfully created!')
+          await addPosted(candidate.link)
+          console.log('💾 Link saved to posted.json:', candidate.link)
         }
-        await postToBsky(agent, fullText, embed)
-        console.log('✅ Post successfully created!')
-        await addPosted(randomPost.link)
-        console.log('💾 Link saved to posted.json:', randomPost.link)
+        catch (error) {
+          console.error('❌ Failed to publish post:', error)
+          await addSkipped(candidate.link)
+          continue
+        }
       }
-      catch (error) {
-        console.error('❌ Failed to publish post:', error)
-      }
+
+      return // Успішно запостили — вихід
     }
+
+    console.warn('🚫 No valid posts found in this run. Nothing was published.')
   }
   catch (error) {
     console.error('❌ Error running Blue Bot:', error)

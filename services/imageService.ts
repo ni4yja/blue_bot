@@ -1,4 +1,5 @@
 import type { AtpAgent } from '@atproto/api'
+import type { EmbedResult } from '../types/image.js'
 import { getEuropeanaThumbnailFromV2 } from '../sources/getEuropeanaThumbnailUrl.js'
 import { getImageFromEuropeanaApi } from '../sources/getImageFromEuropeanaApi.js'
 import { uploadImage } from './blobService.js'
@@ -16,8 +17,13 @@ export async function resolveImageEmbed(
   fallbackLink?: string,
   alt?: string,
   preferThumbnail = false,
-): Promise<{ embed?: any, debugInfo: Record<string, any> }> {
-  const debugInfo: Record<string, any> = { tried: {}, result: null, skipped: {} }
+): Promise<EmbedResult> {
+  const debugInfo: EmbedResult['debugInfo'] = {
+    tried: {},
+    skipped: {},
+    result: undefined,
+  }
+
   let uploadedBlob
   let source = ''
 
