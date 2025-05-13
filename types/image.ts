@@ -1,6 +1,6 @@
 export interface EmbedResult {
   embed?: {
-    $type: 'app.bsky.embed.images#main'
+    $type: 'app.bsky.embed.images'
     images: {
       image: {
         ref: {

@@ -1,9 +1,6 @@
 import type { AtpAgent } from '@atproto/api'
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import fetch from 'node-fetch'
-import sharp from 'sharp'
-import { uploadToCloudinary } from './cloudinaryService.js'
+import { loadImageSource } from '../utils/loadImageSource.js'
+import { resizeToJpeg } from '../utils/resizeToJpeg.js'
 
 export async function uploadImage(
   agent: AtpAgent,
@@ -15,70 +12,30 @@ export async function uploadImage(
   size: number
 } | undefined> {
   try {
-    let rawBuffer: Buffer
+    const rawBuffer = await loadImageSource(source)
+    const jpegBuffer = await resizeToJpeg(rawBuffer)
 
-    if (Buffer.isBuffer(source)) {
-      rawBuffer = source
-      console.log('📦 Using raw buffer as image input')
-    }
-    else if (typeof source === 'string' && source.startsWith('http')) {
-      console.log('📥 Fetching image from:', source)
-      const res = await fetch(source)
-      console.log('📡 Fetch response status:', res.status, res.statusText)
-      if (!res.ok)
-        throw new Error(`Failed to fetch image: ${res.statusText}`)
-      rawBuffer = Buffer.from(await res.arrayBuffer())
-    }
-    else if (typeof source === 'string') {
-      const filePath = path.resolve(source)
-      console.log('📂 Reading local file:', filePath)
-      rawBuffer = await fs.readFile(filePath)
-    }
-    else {
-      throw new TypeError('Unsupported source type')
-    }
-
-    const jpegBuffer = await sharp(rawBuffer)
-      .resize({ width: 1200, withoutEnlargement: true })
-      .removeAlpha()
-      .flatten({ background: '#ffffff' })
-      .jpeg({ quality: 70 })
-      .toBuffer()
-
-    if (jpegBuffer.length > 1000000) {
+    if (jpegBuffer.length > 1_000_000) {
       console.error('❌ Зображення перевищує допустимий розмір 1 MB')
       return
     }
 
-    const cloudinaryUrl = await uploadToCloudinary(jpegBuffer, 'resized.jpg')
-    if (!cloudinaryUrl) {
-      console.warn('⚠️ Failed to upload to Cloudinary')
-      return undefined
-    }
+    const blob = new Blob([jpegBuffer], { type: 'image/jpeg' })
+    const uploaded = await agent.com.atproto.repo.uploadBlob(blob)
+    const result = uploaded.data.blob
 
-    const res = await fetch(cloudinaryUrl)
-    if (!res.ok)
-      throw new Error(`Failed to fetch Cloudinary image: ${res.statusText}`)
-
-    const cloudinaryBuffer = Buffer.from(await res.arrayBuffer())
-    const uploaded = await agent.com.atproto.repo.uploadBlob(cloudinaryBuffer)
-    const blob = uploaded.data.blob
-
-    const cid = blob?.ref?.toString?.()
+    const cid = result?.ref?.toString?.()
     if (!cid) {
-      console.warn('⚠️ Blob is missing ref — cannot be embedded')
+      console.warn('⚠️ Uploaded blob is missing ref')
       return undefined
     }
 
-    const finalBlob = {
-      $type: 'blob' as const,
+    return {
+      $type: 'blob',
       ref: { $link: cid },
-      mimeType: blob.mimeType,
-      size: blob.size,
+      mimeType: result.mimeType,
+      size: result.size,
     }
-
-    console.log('📤 Final Bluesky upload result:', finalBlob)
-    return finalBlob
   }
   catch (error) {
     console.error('❌ Error uploading image:', error)
