@@ -14,7 +14,11 @@ export async function loginToBsky(agent: AtpAgent, username: string, password: s
   }
 }
 
-export async function postToBsky(agent: AtpAgent, text: string, embed?: any) {
+export async function postToBsky(
+  agent: AtpAgent,
+  text: string,
+  embed?: any,
+): Promise<string | undefined> {
   if (!agent.session?.did) {
     throw new Error('Agent is not authenticated')
   }
@@ -22,7 +26,7 @@ export async function postToBsky(agent: AtpAgent, text: string, embed?: any) {
   try {
     const sanitizedText = sanitizeText(text)
 
-    await agent.app.bsky.feed.post.create(
+    const res = await agent.app.bsky.feed.post.create(
       { repo: agent.session.did },
       {
         $type: 'app.bsky.feed.post',
@@ -31,9 +35,57 @@ export async function postToBsky(agent: AtpAgent, text: string, embed?: any) {
         createdAt: new Date().toISOString(),
       },
     )
+
+    console.log('✅ Post successfully created!')
+    return res.uri
   }
   catch (error) {
     console.error('❌ Error posting to Bluesky:', error)
+    throw error
+  }
+}
+
+export async function replyToBsky(
+  agent: AtpAgent,
+  link: string,
+  parentUri: string,
+): Promise<string | undefined> {
+  if (!agent.session?.did) {
+    throw new Error('Agent is not authenticated')
+  }
+
+  try {
+    const sanitizedLink = sanitizeText(link)
+
+    const thread = await agent.app.bsky.feed.getPostThread({ uri: parentUri })
+
+    const rootPost = (thread.data.thread as any).post
+
+    if (!rootPost || !rootPost.cid) {
+      console.warn('⚠️ Unable to resolve parent post CID from thread')
+      return
+    }
+
+    const rootCid = rootPost.cid
+
+    const res = await agent.app.bsky.feed.post.create(
+      { repo: agent.session.did },
+      {
+        $type: 'app.bsky.feed.post',
+        text: sanitizedLink,
+        createdAt: new Date().toISOString(),
+        reply: {
+          root: { cid: rootCid, uri: parentUri },
+          parent: { cid: rootCid, uri: parentUri },
+        },
+      },
+    )
+
+    console.log('💬 Reply with link embed successfully created!')
+    return res.uri
+  }
+  catch (error) {
+    console.error('❌ Error posting reply with embed to Bluesky:', error)
     throw error
   }
 }

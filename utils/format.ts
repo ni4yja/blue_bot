@@ -4,24 +4,25 @@ export function formatPostData(
   link?: string,
 ) {
   const maxLength = 300
-  const cleanTitle = title || ''
-  const cleanDescription = (description && description !== 'No description available.') ? description : ''
-  const cleanLink = link ? stripTrackingParams(link) : ''
+  const cleanTitle = title?.trim() || ''
+  const cleanLink = link ? stripTrackingParams(link.trim()) : ''
 
-  const parts = [cleanTitle, cleanDescription, cleanLink].filter(Boolean)
-  let fullText = parts.join('\n\n')
+  let cleanDescription = (description && description !== 'No description available.')
+    ? description.trim()
+    : ''
 
-  if (fullText.length > maxLength) {
-    fullText = `${fullText.slice(0, maxLength - 1)}…`
+  // тимчасово обмежимо тільки description
+  const baseLength = cleanTitle.length + cleanLink.length + 4 // 2 × \n\n
+  const available = maxLength - baseLength
+
+  if (cleanDescription.length > available) {
+    cleanDescription = `${cleanDescription.slice(0, available - 1)}…`
   }
 
-  // Розділяємо назад на title і description, якщо можливо
-  const [finalTitle, ...rest] = fullText.split('\n\n')
-  const finalDescription = rest.join('\n\n')
-
   return {
-    title: finalTitle.trim(),
-    description: finalDescription.trim(),
+    title: cleanTitle,
+    description: cleanDescription,
+    link: cleanLink,
   }
 }
 
@@ -29,7 +30,7 @@ export function sanitizeText(text: string): string {
   return text
     .replace(/\u2026/g, '...')
     // eslint-disable-next-line no-control-regex
-    .replace(/[^\x00-\xFF]/g, '')
+    .replace(/[\u0000-\u0009\u000B-\u001F]/g, '')
     .trim()
 }
 

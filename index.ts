@@ -3,13 +3,14 @@ import * as dotenv from 'dotenv'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-import { loginToBsky, postToBsky } from './services/bskyService.js'
+import { loginToBsky, postToBsky, replyToBsky } from './services/bskyService.js'
 import { addPosted, isAlreadyPosted, loadPosted } from './storage/postedStorage.js'
 import { loadPosts } from './storage/postStorage.js'
 import { addSkipped, isAlreadySkipped, loadSkipped } from './storage/skippedStorage.js'
 import { prepareImageEmbed } from './utils/embedHelper.js'
 import { formatPostData, sanitizeText } from './utils/format.js'
 import { logPostPayload } from './utils/logPostPayload.js'
+import { shortenUrl } from './utils/shortenUrl.js'
 
 dotenv.config()
 
@@ -81,23 +82,28 @@ async function runBlueBot() {
 
       const { embed, debugInfo } = result
 
-      const { title, description } = formatPostData(
+      const { title, description, link } = formatPostData(
         candidate.title,
         candidate.description,
         candidate.link,
       )
 
-      const fullText = sanitizeText([title, description].filter(Boolean).join('\n\n'))
+      const fullText = sanitizeText(
+        [title, description].filter(Boolean).join('\n\n'),
+      )
+
+      const shortLink = await shortenUrl(link)
 
       if (isDryRun) {
         logPostPayload(fullText, embed, debugInfo)
       }
       else {
         try {
-          await postToBsky(agent, fullText, embed)
-          console.log('✅ Post successfully created!')
+          const uri = await postToBsky(agent, fullText, embed)
           await addPosted(candidate.link)
-          console.log('💾 Link saved to posted.json:', candidate.link)
+          if (uri && shortLink) {
+            await replyToBsky(agent, `🌊 More info on Europeana:\n${shortLink}`, uri)
+          }
         }
         catch (error) {
           console.error('❌ Failed to publish post:', error)
