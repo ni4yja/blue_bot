@@ -9,3 +9,4 @@ services/*.js
 index.js
 storage/posts.json
 storage/posted.json
+storage/skipped.json
