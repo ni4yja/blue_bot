@@ -8,7 +8,13 @@ export const HEADERS = {
   'Cache-Control': 'no-cache',
 }
 
-export function extractEuropeanaIds(url: string): { datasetId: string, recordId: string } | null {
+/**
+ * Extracts datasetId and recordId from a Europeana URL.
+ * Example: https://www.europeana.eu/item/12345/abc -> { datasetId: '12345', recordId: 'abc' }
+ */
+export function extractEuropeanaIds(
+  url: string,
+): { datasetId: string, recordId: string } | null {
   try {
     const { hostname, pathname } = new URL(url)
     const parts = pathname.split('/').filter(Boolean)
@@ -27,6 +33,10 @@ export function extractEuropeanaIds(url: string): { datasetId: string, recordId:
   }
 }
 
+/**
+ * Extracts a human-readable string from a multilingual object or array.
+ * Tries preferredLang first; falls back to first available value.
+ */
 export function extractMultilangValue<T extends string | string[]>(
   input?: Record<string, T> | Array<{ '@value': string, '@language'?: string }>,
   preferredLang = 'en',
@@ -43,6 +53,9 @@ export function extractMultilangValue<T extends string | string[]>(
   return Array.isArray(raw) ? raw[0] : raw
 }
 
+/**
+ * Resolves Europeana v2 thumbnail API link to an actual image URL.
+ */
 export async function resolveThumbnail(url?: string): Promise<string | undefined> {
   if (!url || !url.includes('thumbnail/v2/url.json'))
     return url

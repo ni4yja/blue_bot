@@ -1,29 +1,41 @@
 import fetch from 'node-fetch'
 
 /**
- * Translate text to a target language using DeepL API
- * @param text Text to translate
- * @param sourceLang Source language (optional, default 'auto')
- * @param targetLang Target language (default 'EN')
- * @returns Translated string or undefined
+ * Translates text using the DeepL API.
+ * @param text - Text to translate.
+ * @param sourceLang - Source language (optional, default = 'auto').
+ * @param targetLang - Target language (default = 'EN').
+ * @returns Translated text or undefined if failed.
  */
 export async function translateText(
   text: string,
   sourceLang: string = 'auto',
   targetLang: string = 'EN',
 ): Promise<string | undefined> {
+  const apiKey = process.env.DEEPL_API_KEY
+
+  if (!apiKey) {
+    console.warn('⚠️ Missing DeepL API key')
+    return undefined
+  }
+
   try {
+    const body = new URLSearchParams({
+      text,
+      target_lang: targetLang,
+    })
+
+    if (sourceLang !== 'auto') {
+      body.set('source_lang', sourceLang)
+    }
+
     const res = await fetch('https://api-free.deepl.com/v2/translate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
+        'Authorization': `DeepL-Auth-Key ${apiKey}`,
       },
-      body: new URLSearchParams({
-        text,
-        target_lang: targetLang,
-        ...(sourceLang !== 'auto' && { source_lang: sourceLang }),
-      }),
+      body,
     })
 
     if (!res.ok) {

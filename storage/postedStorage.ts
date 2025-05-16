@@ -7,6 +7,9 @@ export interface PostedRecord {
   postedAt: string
 }
 
+/**
+ * Loads the list of already posted records from JSON file.
+ */
 export async function loadPosted(): Promise<PostedRecord[]> {
   try {
     const file = await fs.readFile(FILE_PATH, 'utf-8')
@@ -17,7 +20,7 @@ export async function loadPosted(): Promise<PostedRecord[]> {
       return []
     }
 
-    return parsed
+    return parsed as PostedRecord[]
   }
   catch (error) {
     console.warn('⚠️ No posted.json found, starting fresh.', error)
@@ -25,16 +28,25 @@ export async function loadPosted(): Promise<PostedRecord[]> {
   }
 }
 
+/**
+ * Saves an array of PostedRecord to disk.
+ */
 export async function savePosted(records: PostedRecord[]): Promise<void> {
   await fs.writeFile(FILE_PATH, JSON.stringify(records, null, 2))
 }
 
+/**
+ * Adds a new link with timestamp to posted.json.
+ */
 export async function addPosted(link: string): Promise<void> {
   const posted = await loadPosted()
   posted.push({ link, postedAt: new Date().toISOString() })
   await savePosted(posted)
 }
 
+/**
+ * Checks whether the given link has already been posted.
+ */
 export function isAlreadyPosted(posted: PostedRecord[], link: string): boolean {
   return posted.some(record => record.link === link)
 }
