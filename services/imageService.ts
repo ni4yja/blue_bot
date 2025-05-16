@@ -27,74 +27,62 @@ export async function resolveImageEmbed(
   let uploadedBlob
   let source = ''
 
-  // 1️⃣ Europeana Thumbnail API v2
+  // Helper to attempt uploading and record results
+  async function tryUpload(tag: string, url?: string): Promise<boolean> {
+    if (!url)
+      return false
+    debugInfo.tried[tag] = url
+    const result = await uploadImage(agent, url)
+    if (result) {
+      uploadedBlob = result
+      source = tag
+      return true
+    }
+    else {
+      debugInfo.skipped[tag] = 'uploadImage failed or returned undefined'
+      return false
+    }
+  }
+
+  // Europeana Thumbnail API v2
   if (preferThumbnail && imageUrl) {
     try {
       const hostname = new URL(imageUrl).hostname
       if (supportedThumbnailDomains.some(domain => hostname.includes(domain))) {
         const thumbUrl = await getEuropeanaThumbnailFromV2(imageUrl)
-        if (thumbUrl) {
-          debugInfo.tried.thumbnailV2 = thumbUrl
-          uploadedBlob = await uploadImage(agent, thumbUrl)
-          if (uploadedBlob)
-            source = 'thumbnailV2'
+        if (thumbUrl && await tryUpload('thumbnailV2', thumbUrl)) {
+          // success
         }
       }
       else {
         debugInfo.skipped.thumbnailV2 = `Unsupported domain: ${hostname}`
       }
     }
-    catch (err) {
-      debugInfo.skipped.thumbnailV2 = `Invalid thumbnail URL`
+    catch {
+      debugInfo.skipped.thumbnailV2 = 'Invalid thumbnail URL'
     }
   }
 
-  // 2️⃣ Основне зображення
-  if (!uploadedBlob && imageUrl) {
-    debugInfo.tried.primary = imageUrl
-    const result = await uploadImage(agent, imageUrl)
-    if (result) {
-      uploadedBlob = result
-      source = 'primary'
-    }
-    else {
-      debugInfo.skipped.primary = 'uploadImage failed or returned undefined'
-    }
-  }
+  // Primary image
+  if (!uploadedBlob && imageUrl)
+    await tryUpload('primary', imageUrl)
 
-  // 3️⃣ fallbackLink як пряме зображення
-  if (!uploadedBlob && fallbackLink) {
-    debugInfo.tried.fallback = fallbackLink
-    const result = await uploadImage(agent, fallbackLink)
-    if (result) {
-      uploadedBlob = result
-      source = 'fallback'
-    }
-    else {
-      debugInfo.skipped.fallback = 'uploadImage failed or returned undefined'
-    }
-  }
+  // Fallback direct link
+  if (!uploadedBlob && fallbackLink)
+    await tryUpload('fallback', fallbackLink)
 
-  // 4️⃣ fallback через Europeana API
+  // Fallback via Europeana API
   if (!uploadedBlob && fallbackLink) {
     const apiImage = await getImageFromEuropeanaApi(fallbackLink)
     if (apiImage) {
-      debugInfo.tried.api = apiImage
-      const result = await uploadImage(agent, apiImage)
-      if (result) {
-        uploadedBlob = result
-        source = 'api'
-      }
-      else {
-        debugInfo.skipped.api = 'uploadImage failed for API result'
-      }
+      await tryUpload('api', apiImage)
     }
     else {
       debugInfo.skipped.api = 'Europeana API did not return image'
     }
   }
 
-  // 🧩 Повернення
+  // Final embed result
   if (uploadedBlob?.ref?.$link) {
     debugInfo.result = {
       url: debugInfo.tried[source],
@@ -106,7 +94,7 @@ export async function resolveImageEmbed(
 
     return {
       embed: {
-        $type: 'app.bsky.embed.images', // ✅ правильний тип
+        $type: 'app.bsky.embed.images',
         images: [
           {
             image: uploadedBlob,

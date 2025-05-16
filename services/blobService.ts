@@ -2,6 +2,18 @@ import type { AtpAgent } from '@atproto/api'
 import { loadImageSource } from '../utils/loadImageSource.js'
 import { resizeToJpeg } from '../utils/resizeToJpeg.js'
 
+/**
+ * Uploads an image to Bluesky (via the atproto blob API).
+ * Accepts either a remote URL or a local Buffer.
+ *
+ * Steps:
+ * 1. Load the source as a Buffer (handles string URL, file path, or Buffer).
+ * 2. Resize and convert to JPEG.
+ * 3. Ensure it’s under 1MB (Bluesky limitation).
+ * 4. Wrap it in a Blob and upload via the agent.
+ * 5. Return the final structure with CID and metadata.
+ */
+
 export async function uploadImage(
   agent: AtpAgent,
   source: string | Buffer,
@@ -16,7 +28,7 @@ export async function uploadImage(
     const jpegBuffer = await resizeToJpeg(rawBuffer)
 
     if (jpegBuffer.length > 1_000_000) {
-      console.error('❌ Зображення перевищує допустимий розмір 1 MB')
+      console.error('❌ Image exceeds the 1MB limit')
       return
     }
 

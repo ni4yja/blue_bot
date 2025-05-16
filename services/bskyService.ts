@@ -2,16 +2,7 @@ import type { AtpAgent } from '@atproto/api'
 import { sanitizeText } from '../utils/format.js'
 
 export async function loginToBsky(agent: AtpAgent, username: string, password: string) {
-  try {
-    await agent.login({
-      identifier: username,
-      password,
-    })
-  }
-  catch (error) {
-    console.error('❌ Failed to log in:', error)
-    throw error
-  }
+  return agent.login({ identifier: username, password })
 }
 
 export async function postToBsky(
@@ -19,30 +10,20 @@ export async function postToBsky(
   text: string,
   embed?: any,
 ): Promise<string | undefined> {
-  if (!agent.session?.did) {
+  if (!agent.session?.did)
     throw new Error('Agent is not authenticated')
-  }
 
-  try {
-    const sanitizedText = sanitizeText(text)
+  const res = await agent.app.bsky.feed.post.create(
+    { repo: agent.session.did },
+    {
+      $type: 'app.bsky.feed.post',
+      text: sanitizeText(text),
+      embed,
+      createdAt: new Date().toISOString(),
+    },
+  )
 
-    const res = await agent.app.bsky.feed.post.create(
-      { repo: agent.session.did },
-      {
-        $type: 'app.bsky.feed.post',
-        text: sanitizedText,
-        embed,
-        createdAt: new Date().toISOString(),
-      },
-    )
-
-    console.log('✅ Post successfully created!')
-    return res.uri
-  }
-  catch (error) {
-    console.error('❌ Error posting to Bluesky:', error)
-    throw error
-  }
+  return res.uri
 }
 
 export async function replyToBsky(
@@ -50,42 +31,27 @@ export async function replyToBsky(
   link: string,
   parentUri: string,
 ): Promise<string | undefined> {
-  if (!agent.session?.did) {
+  if (!agent.session?.did)
     throw new Error('Agent is not authenticated')
-  }
 
-  try {
-    const sanitizedLink = sanitizeText(link)
+  const thread = await agent.app.bsky.feed.getPostThread({ uri: parentUri })
+  const rootPost = (thread.data.thread as any).post
 
-    const thread = await agent.app.bsky.feed.getPostThread({ uri: parentUri })
+  if (!rootPost?.cid)
+    return
 
-    const rootPost = (thread.data.thread as any).post
-
-    if (!rootPost || !rootPost.cid) {
-      console.warn('⚠️ Unable to resolve parent post CID from thread')
-      return
-    }
-
-    const rootCid = rootPost.cid
-
-    const res = await agent.app.bsky.feed.post.create(
-      { repo: agent.session.did },
-      {
-        $type: 'app.bsky.feed.post',
-        text: sanitizedLink,
-        createdAt: new Date().toISOString(),
-        reply: {
-          root: { cid: rootCid, uri: parentUri },
-          parent: { cid: rootCid, uri: parentUri },
-        },
+  const res = await agent.app.bsky.feed.post.create(
+    { repo: agent.session.did },
+    {
+      $type: 'app.bsky.feed.post',
+      text: sanitizeText(link),
+      createdAt: new Date().toISOString(),
+      reply: {
+        root: { cid: rootPost.cid, uri: parentUri },
+        parent: { cid: rootPost.cid, uri: parentUri },
       },
-    )
+    },
+  )
 
-    console.log('💬 Reply with link embed successfully created!')
-    return res.uri
-  }
-  catch (error) {
-    console.error('❌ Error posting reply with embed to Bluesky:', error)
-    throw error
-  }
+  return res.uri
 }
