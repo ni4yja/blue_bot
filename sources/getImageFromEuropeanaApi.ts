@@ -1,49 +1,33 @@
 import type { EuropeanaApiResponse } from '../types/europeana.js'
 import fetch from 'node-fetch'
 
+/**
+ * Attempts to fetch an image URL from Europeana Record API v2 using a public link.
+ * Prioritizes `edmIsShownBy`, then falls back to `edmPreview[]`.
+ */
 export async function getImageFromEuropeanaApi(link: string): Promise<string | undefined> {
   const apiKey = process.env.EUROPEANA_API_KEY
-  if (!apiKey) {
-    console.warn('⚠️ No Europeana API key found.')
-    return undefined
-  }
+  if (!apiKey)
+    return
+
+  const match = link.match(/\/(?:item|record)\/([^/?#]+)/)
+  if (!match)
+    return
+
+  const recordId = match[1]
+  const apiUrl = `https://api.europeana.eu/record/v2/${recordId}.json?wskey=${apiKey}`
 
   try {
-    const match = link.match(/\/(?:item|record)\/([^/?#]+)/)
-    if (!match) {
-      console.warn('⚠️ Unable to extract Europeana record ID from:', link)
-      return undefined
-    }
-
-    const recordId = match[1]
-    const apiUrl = `https://api.europeana.eu/record/v2/${recordId}.json?wskey=${apiKey}`
-
-    console.log('📡 Fetching Europeana API for image:', apiUrl)
-
     const res = await fetch(apiUrl)
-    if (!res.ok) {
-      console.warn(`⚠️ Europeana API returned ${res.status}: ${res.statusText}`)
-      return undefined
-    }
+    if (!res.ok)
+      return
 
     const data = await res.json() as EuropeanaApiResponse
 
-    // Пробуємо знайти зображення через edmIsShownBy
-    const shownBy = data.object?.aggregations?.[0]?.edmIsShownBy
-    if (shownBy) {
-      console.log('🖼️ Found edmIsShownBy:', shownBy)
-      return shownBy
-    }
-
-    // Альтернатива: edmPreview[]
-    const preview = data.object?.europeanaAggregation?.edmPreview
-    if (preview?.length) {
-      console.log('🖼️ Using edmPreview fallback:', preview[0])
-      return preview[0]
-    }
-
-    console.warn('ℹ️ No image found in Europeana API response.')
-    return undefined
+    return (
+      data.object?.aggregations?.[0]?.edmIsShownBy
+      || data.object?.europeanaAggregation?.edmPreview?.[0]
+    )
   }
   catch (err) {
     console.error('❌ Europeana API fetch error:', (err as Error).message)
