@@ -5,17 +5,20 @@
     "prebuild": "npm run clean",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "node --import ./register-loader.mjs index.ts",
+    "dev": "tsx index.ts",
+    "dry": "tsx index.ts --dry-run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@atproto/api": "^0.6.20",
+    "@atproto/api": "^0.15.5",
     "cheerio": "^1.0.0",
     "cron": "^3.1.0",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2",
-    "typescript": "^5.2.0"
+    "sharp": "^0.34.1",
+    "typescript": "^5.2.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^3.7.3",
@@ -23,6 +26,7 @@
     "@types/cron": "^2.4.3",
     "@types/node": "^22.7.4",
     "@types/node-fetch": "^2.6.11",
+    "@types/yargs": "^17.0.33",
     "eslint": "^9.11.1",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.2"

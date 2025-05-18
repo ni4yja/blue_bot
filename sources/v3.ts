@@ -1,27 +1,19 @@
+import type { EuropeanaV3Proxy, EuropeanaV3Response } from '../types/europeana.js'
 import type { OgMetadata } from './getOgMetadata.js'
 import fetch from 'node-fetch'
 import { extractMultilangValue, resolveThumbnail } from '../utils/extract.js'
+import { translateText } from '../utils/translate.js'
 
-interface EuropeanaV3Proxy {
-  id?: string
-  title?: Record<string, string | string[]>
-  description?: Array<{ '@value': string, '@language'?: string }>
-  edmPreview?: string
-  edmIsShownBy?: string
-  edmObject?: string
-  proxyIn?: {
-    object?: { id?: string }
-    isShownBy?: { id?: string }
-  }
-}
-
-interface EuropeanaV3Response {
-  thumbnail?: string
-  proxies?: EuropeanaV3Proxy[]
-}
-
-export async function fetchFromEuropeanaV3Api(datasetId: string, recordId: string): Promise<OgMetadata> {
-  const url = `${process.env.EUROPEANA_API_URL_V3}/record/v3/${datasetId}/${recordId}?profile=meta.full,media.full`
+/**
+ * Fetches metadata (title, description, image) from Europeana v3 API.
+ * Requires valid API key passed as an argument.
+ */
+export async function fetchFromEuropeanaV3Api(
+  datasetId: string,
+  recordId: string,
+  apiKey: string,
+): Promise<OgMetadata> {
+  const url = `${process.env.EUROPEANA_API_URL_V3}/record/v3/${datasetId}/${recordId}?profile=meta.full,media.full&wskey=${apiKey}`
 
   try {
     const res = await fetch(url)
@@ -31,18 +23,16 @@ export async function fetchFromEuropeanaV3Api(datasetId: string, recordId: strin
     }
 
     const data: EuropeanaV3Response = await res.json()
-    const providerProxy = data.proxies?.find(p =>
-      p.id?.includes('/proxy/provider/'),
-    )
+    const providerProxy: EuropeanaV3Proxy | undefined
+      = data.proxies?.find(p => p.id?.includes('/proxy/provider/'))
 
     const title = extractMultilangValue(providerProxy?.title, 'en')
+    const rawDescription = extractMultilangValue(providerProxy?.description)
+    const originalLang = providerProxy?.description?.[0]?.['@language'] || 'unknown'
 
     let description = extractMultilangValue(providerProxy?.description, 'en')
-    if (!description) {
-      description = extractMultilangValue(providerProxy?.description)
-    }
-    if (!description) {
-      description = 'No description available.'
+    if (!description || originalLang !== 'en') {
+      description = rawDescription ? await translateText(rawDescription) : undefined
     }
 
     const rawImage

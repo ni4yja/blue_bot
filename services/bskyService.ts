@@ -1,6 +1,8 @@
-import type { BskyAgent } from '@atproto/api'
+import type { AtpAgent } from '@atproto/api'
+import { sanitizeText } from '../utils/format.js'
+import { shortenUrl } from '../utils/shortenUrl.js'
 
-export async function loginToBsky(agent: InstanceType<typeof BskyAgent>, username: string, password: string) {
+export async function loginToBsky(agent: AtpAgent, username: string, password: string) {
   try {
     await agent.login({
       identifier: username,
@@ -8,38 +10,82 @@ export async function loginToBsky(agent: InstanceType<typeof BskyAgent>, usernam
     })
   }
   catch (error) {
-    console.error('Error on login:', error)
+    console.error('❌ Failed to log in:', error)
     throw error
   }
 }
 
 export async function postToBsky(
-  agent: InstanceType<typeof BskyAgent>,
+  agent: AtpAgent,
   text: string,
-  facets: Array<{
-    index: { byteStart: number, byteEnd: number }
-    features: Array<{ $type: string, uri?: string }>
-  }> = [],
-  embed?: {
-    $type: string
-    external: {
-      uri: string
-      title: string
-      description?: string
-      thumb?: { ref: string }
-    }
-  },
-) {
+  embed?: any,
+): Promise<string | undefined> {
+  if (!agent.session?.did) {
+    throw new Error('Agent is not authenticated')
+  }
+
   try {
-    await agent.post({
-      $type: 'app.bsky.feed.post',
-      text,
-      facets: facets.length > 0 ? facets : undefined,
-      embed,
-      createdAt: new Date().toISOString(),
-    })
+    const sanitizedText = sanitizeText(text)
+
+    const res = await agent.app.bsky.feed.post.create(
+      { repo: agent.session.did },
+      {
+        $type: 'app.bsky.feed.post',
+        text: sanitizedText,
+        embed,
+        createdAt: new Date().toISOString(),
+      },
+    )
+
+    return res.uri
   }
   catch (error) {
-    console.error('Error on post:', error)
+    console.error('❌ Error posting to Bluesky:', error)
+    throw error
+  }
+}
+
+export async function replyToBsky(
+  agent: AtpAgent,
+  originalLink: string,
+  parentUri: string,
+): Promise<string | undefined> {
+  if (!agent.session?.did) {
+    throw new Error('Agent is not authenticated')
+  }
+
+  try {
+    const shortLink = await shortenUrl(originalLink)
+    const replyText = sanitizeText(`🌊 More info on Europeana:
+${shortLink}`)
+
+    const thread = await agent.app.bsky.feed.getPostThread({ uri: parentUri })
+    const rootPost = (thread.data.thread as any).post
+
+    if (!rootPost || !rootPost.cid) {
+      console.warn('⚠️ Unable to resolve parent post CID from thread')
+      return
+    }
+
+    const rootCid = rootPost.cid
+
+    const res = await agent.app.bsky.feed.post.create(
+      { repo: agent.session.did },
+      {
+        $type: 'app.bsky.feed.post',
+        text: replyText,
+        createdAt: new Date().toISOString(),
+        reply: {
+          root: { cid: rootCid, uri: parentUri },
+          parent: { cid: rootCid, uri: parentUri },
+        },
+      },
+    )
+
+    return res.uri
+  }
+  catch (error) {
+    console.error('❌ Error posting reply to Bluesky:', error)
+    throw error
   }
 }
