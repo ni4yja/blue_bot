@@ -5,6 +5,7 @@ import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
 import { loginToBsky, postToBsky, replyToBsky } from './services/bskyService.js'
+import { postSuccessImage } from './services/postSuccessImage.js'
 import { addPosted, isAlreadyPosted, loadPosted } from './storage/postedStorage.js'
 import { loadPosts } from './storage/postStorage.js'
 import { isAlreadySkipped, loadSkipped } from './storage/skippedStorage.js'
@@ -104,7 +105,7 @@ async function runBlueBot() {
 
       break // Exit after first successful post
     }
-
+    await postSuccessImage(agent)
     console.log('✅ Bot run complete.')
   }
   catch (error) {
