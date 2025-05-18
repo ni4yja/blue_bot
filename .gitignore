@@ -1,5 +1,6 @@
 node_modules
 dist
+data
 article-db
 .DS_Store
 .vscode
@@ -7,6 +8,3 @@ article-db
 *.log
 services/*.js
 index.js
-storage/posts.json
-storage/posted.json
-storage/skipped.json

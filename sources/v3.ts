@@ -22,7 +22,7 @@ export async function fetchFromEuropeanaV3Api(
       return {}
     }
 
-    const data: EuropeanaV3Response = await res.json()
+    const data = await res.json() as EuropeanaV3Response
     const providerProxy: EuropeanaV3Proxy | undefined
       = data.proxies?.find(p => p.id?.includes('/proxy/provider/'))
 

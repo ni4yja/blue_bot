@@ -11,6 +11,14 @@ const supportedThumbnailDomains = [
   'apsida.cut.ac.cy',
 ]
 
+// Тип для завантаженого зображення
+interface UploadedBlob {
+  $type: 'blob'
+  ref: { $link: string }
+  mimeType: string
+  size: number
+}
+
 export async function resolveImageEmbed(
   agent: AtpAgent,
   imageUrl?: string,
@@ -24,65 +32,69 @@ export async function resolveImageEmbed(
     result: undefined,
   }
 
-  let uploadedBlob
+  let uploadedBlob: UploadedBlob | undefined
   let source = ''
 
-  // Helper to attempt uploading and record results
+  // Допоміжна функція для спроби завантаження
   async function tryUpload(tag: string, url?: string): Promise<boolean> {
     if (!url)
       return false
     debugInfo.tried[tag] = url
+
     const result = await uploadImage(agent, url)
     if (result) {
-      uploadedBlob = result
+      uploadedBlob = result as UploadedBlob
       source = tag
       return true
     }
     else {
-      debugInfo.skipped[tag] = 'uploadImage failed or returned undefined'
+      debugInfo.skipped![tag] = 'uploadImage failed or returned undefined'
       return false
     }
   }
 
-  // Europeana Thumbnail API v2
+  // 1️⃣ Спроба отримати превʼю через Europeana Thumbnail API v2
   if (preferThumbnail && imageUrl) {
     try {
       const hostname = new URL(imageUrl).hostname
-      if (supportedThumbnailDomains.some(domain => hostname.includes(domain))) {
-        const thumbUrl = await getEuropeanaThumbnailFromV2(imageUrl)
-        if (thumbUrl && await tryUpload('thumbnailV2', thumbUrl)) {
-          // success
-        }
+      const isSupported = supportedThumbnailDomains.some(domain =>
+        hostname.includes(domain),
+      )
+
+      if (!isSupported) {
+        debugInfo.skipped!.thumbnailV2 = `Unsupported domain: ${hostname}`
       }
       else {
-        debugInfo.skipped.thumbnailV2 = `Unsupported domain: ${hostname}`
+        const thumbUrl = await getEuropeanaThumbnailFromV2(imageUrl)
+        if (thumbUrl)
+          await tryUpload('thumbnailV2', thumbUrl)
       }
     }
     catch {
-      debugInfo.skipped.thumbnailV2 = 'Invalid thumbnail URL'
+      debugInfo.skipped!.thumbnailV2 = 'Invalid thumbnail URL'
     }
   }
 
-  // Primary image
+  // 2️⃣ Спроба завантажити основне зображення
   if (!uploadedBlob && imageUrl)
     await tryUpload('primary', imageUrl)
 
-  // Fallback direct link
+  // 3️⃣ Спроба fallback-завантаження з прямого посилання
   if (!uploadedBlob && fallbackLink)
     await tryUpload('fallback', fallbackLink)
 
-  // Fallback via Europeana API
+  // 4️⃣ Спроба через Europeana API
   if (!uploadedBlob && fallbackLink) {
     const apiImage = await getImageFromEuropeanaApi(fallbackLink)
     if (apiImage) {
       await tryUpload('api', apiImage)
     }
     else {
-      debugInfo.skipped.api = 'Europeana API did not return image'
+      debugInfo.skipped!.api = 'Europeana API did not return image'
     }
   }
 
-  // Final embed result
+  // 🧩 Повернення результату, якщо успішно
   if (uploadedBlob?.ref?.$link) {
     debugInfo.result = {
       url: debugInfo.tried[source],

@@ -1,12 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "rootDir": "./",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "resolveJsonModule": true,
+    "module": "ES2022",
+    "moduleResolution": "Node",
+    "strict": true,
     "outDir": "./dist",
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
-  }
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
 }

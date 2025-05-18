@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 
-const FILE_PATH = './storage/posted.json'
+const FILE_PATH = './data/posted.json'
 
 export interface PostedRecord {
   link: string

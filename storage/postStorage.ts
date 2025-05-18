@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-const POSTS_FILE_PATH = path.resolve('storage/posts.json')
+const POSTS_FILE_PATH = path.resolve('data/posts.json')
 
 export interface StoredPost {
   link: string

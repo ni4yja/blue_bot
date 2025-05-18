@@ -1,0 +1,22 @@
+app = "blue-bot"
+primary_region = "waw"
+
+[build]
+dockerfile = "Dockerfile"
+
+[env]
+NODE_ENV = "production"
+
+[processes]
+app = "npm run start"
+
+[experimental]
+auto_rollback = true
+
+[mounts]
+source = "data"
+destination = "/app/data"
+
+[[cron]]
+schedule = "0 12 * * *"
+command = "node dist/index.js"

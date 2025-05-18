@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 
-const SKIPPED_PATH = './storage/skipped.json'
+const SKIPPED_PATH = './data/skipped.json'
 
 /**
  * Loads the list of skipped links from JSON file.
