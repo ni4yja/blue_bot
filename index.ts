@@ -34,6 +34,7 @@ const argvPromise = yargs(hideBin(process.argv))
 const argv = await argvPromise
 const isDryRun = argv['dry-run'] === true
 const isListOnly = argv.list === true
+const disableCache = process.env.DISABLE_CACHE === 'true'
 
 async function runBlueBot() {
   try {
@@ -48,8 +49,8 @@ async function runBlueBot() {
     await loginToBsky(agent, username, password)
 
     const posts = await loadPosts()
-    const posted = await loadPosted()
-    const skipped = await loadSkipped()
+    const posted = disableCache ? [] : await loadPosted()
+    const skipped = disableCache ? [] : await loadSkipped()
 
     const candidates = posts.filter(
       p =>
@@ -71,6 +72,8 @@ async function runBlueBot() {
       console.log('ℹ️ No new posts to process.')
       return
     }
+
+    let postPublished = false
 
     for (const candidate of candidates) {
       console.log(`🔍 Processing: ${candidate.link}`)
@@ -95,30 +98,39 @@ async function runBlueBot() {
       try {
         const postUri = await postToBsky(agent, fullText, embed)
         if (postUri) {
-          await addPosted(candidate.link)
+          postPublished = true
+          if (!disableCache) {
+            await addPosted(candidate.link)
+          }
           await replyToBsky(agent, candidate.link, postUri)
         }
       }
-      catch {
-        await addPosted(candidate.link)
+      catch (err) {
+        console.error('❌ Failed to post, marking as posted anyway:', err)
+        postPublished = true
+        if (!disableCache) {
+          await addPosted(candidate.link)
+        }
       }
 
       break
     }
 
-    const latestPosted = await loadPosted()
-    const latestSkipped = await loadSkipped()
-    const remaining = posts.filter(
-      p =>
-        !isAlreadyPosted(latestPosted, p.link)
-        && !isAlreadySkipped(latestSkipped, p.link)
-        && !!p.image
-        && (p.image.startsWith('http://') || p.image.startsWith('https://')),
-    )
+    if (!isDryRun && postPublished) {
+      const latestPosted = disableCache ? [] : await loadPosted()
+      const latestSkipped = disableCache ? [] : await loadSkipped()
+      const remaining = posts.filter(
+        p =>
+          !isAlreadyPosted(latestPosted, p.link)
+          && !isAlreadySkipped(latestSkipped, p.link)
+          && !!p.image
+          && (p.image.startsWith('http://') || p.image.startsWith('https://')),
+      )
 
-    if (!isDryRun && remaining.length === 0) {
-      await postSuccessImage(agent)
-      console.log('🎉 All posts done. Posted success message.')
+      if (remaining.length === 0) {
+        await postSuccessImage(agent)
+        console.log('🎉 All posts done. Posted success message.')
+      }
     }
   }
   catch (error) {

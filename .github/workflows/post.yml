@@ -2,7 +2,7 @@ name: Blue Bot Daily Post
 
 on:
   schedule:
-  - cron: '*/20 * * * *'
+  - cron: '*/10 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -30,3 +30,4 @@ jobs:
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
           EUROPEANA_API_URL_V3: ${{ vars.EUROPEANA_API_URL_V3 }}
           DRY_RUN: ${{ vars.DRY_RUN }}
+          DISABLE_CACHE: ${{ vars.DISABLE_CACHE }}
