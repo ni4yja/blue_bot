@@ -28,6 +28,5 @@ jobs:
           BLUESKY_PASSWORD: ${{ secrets.BLUESKY_PASSWORD }}
           EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
-          EUROPEANA_API_URL_V3: ${{ vars.EUROPEANA_API_URL_V3 }}
-          DRY_RUN: ${{ vars.DRY_RUN }}
+          EUROPEANA_API_URL_V3: ${{ vars.EUROPEANA_API_URL_V3 }}}
           DISABLE_CACHE: ${{ vars.DISABLE_CACHE }}
