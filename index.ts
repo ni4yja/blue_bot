@@ -32,9 +32,13 @@ const argvPromise = yargs(hideBin(process.argv))
 
 // eslint-disable-next-line antfu/no-top-level-await
 const argv = await argvPromise
-const isDryRun = argv['dry-run'] === true
+
+const isDryRun = argv['dry-run'] === true || process.env.DRY_RUN === 'true'
 const isListOnly = argv.list === true
 const disableCache = process.env.DISABLE_CACHE === 'true'
+
+console.log('🧪 isDryRun:', isDryRun)
+console.log('📦 disableCache:', disableCache)
 
 async function runBlueBot() {
   try {
