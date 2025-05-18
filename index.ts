@@ -55,7 +55,8 @@ async function runBlueBot() {
       p =>
         !isAlreadyPosted(posted, p.link)
         && !isAlreadySkipped(skipped, p.link)
-        && !!p.image && (p.image.startsWith('http://') || p.image.startsWith('https://')),
+        && !!p.image
+        && (p.image.startsWith('http://') || p.image.startsWith('https://')),
     )
 
     if (isListOnly) {
@@ -70,8 +71,6 @@ async function runBlueBot() {
       console.log('ℹ️ No new posts to process.')
       return
     }
-
-    let hasPosted = false
 
     for (const candidate of candidates) {
       console.log(`🔍 Processing: ${candidate.link}`)
@@ -98,20 +97,28 @@ async function runBlueBot() {
         if (postUri) {
           await addPosted(candidate.link)
           await replyToBsky(agent, candidate.link, postUri)
-          hasPosted = true
         }
       }
       catch {
         await addPosted(candidate.link)
-        continue
       }
 
       break
     }
 
-    if (hasPosted) {
+    const latestPosted = await loadPosted()
+    const latestSkipped = await loadSkipped()
+    const remaining = posts.filter(
+      p =>
+        !isAlreadyPosted(latestPosted, p.link)
+        && !isAlreadySkipped(latestSkipped, p.link)
+        && !!p.image
+        && (p.image.startsWith('http://') || p.image.startsWith('https://')),
+    )
+
+    if (!isDryRun && remaining.length === 0) {
       await postSuccessImage(agent)
-      console.log('✅ Bot run complete.')
+      console.log('🎉 All posts done. Posted success message.')
     }
   }
   catch (error) {
