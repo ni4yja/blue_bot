@@ -2,7 +2,7 @@ name: Blue Bot Daily Post
 
 on:
   schedule:
-    - cron: '50 12 * * *'
+  - cron: '*/20 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,5 +27,6 @@ jobs:
           BLUESKY_USERNAME: ${{ secrets.BLUESKY_USERNAME }}
           BLUESKY_PASSWORD: ${{ secrets.BLUESKY_PASSWORD }}
           EUROPEANA_API_KEY: ${{ secrets.EUROPEANA_API_KEY }}
-          EUROPEANA_API_URL_V3: ${{ secrets.EUROPEANA_API_URL_V3 }}
           DEEPL_API_KEY: ${{ secrets.DEEPL_API_KEY }}
+          EUROPEANA_API_URL_V3: ${{ vars.EUROPEANA_API_URL_V3 }}
+          DRY_RUN: ${{ vars.DRY_RUN }}
