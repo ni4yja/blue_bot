@@ -71,6 +71,8 @@ async function runBlueBot() {
       return
     }
 
+    let hasPosted = false
+
     for (const candidate of candidates) {
       console.log(`🔍 Processing: ${candidate.link}`)
 
@@ -96,6 +98,7 @@ async function runBlueBot() {
         if (postUri) {
           await addPosted(candidate.link)
           await replyToBsky(agent, candidate.link, postUri)
+          hasPosted = true
         }
       }
       catch {
@@ -103,10 +106,13 @@ async function runBlueBot() {
         continue
       }
 
-      break // Exit after first successful post
+      break
     }
-    await postSuccessImage(agent)
-    console.log('✅ Bot run complete.')
+
+    if (hasPosted) {
+      await postSuccessImage(agent)
+      console.log('✅ Bot run complete.')
+    }
   }
   catch (error) {
     console.error('❌ Error running Blue Bot:', error)
