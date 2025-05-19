@@ -25,7 +25,6 @@ async function runBlueBot() {
     await loginToBsky(agent, username, password)
 
     const posts = await loadPosts()
-    console.log(`📥 Loaded ${posts.length} posts from storage`)
     const posted = await loadPosted()
     const skipped = await loadSkipped()
 

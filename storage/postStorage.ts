@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { generatePostCandidates } from '../services/generatePostCandidates'
+import { generatePostCandidates } from '../services/generatePostCandidates.js'
 
 export interface StoredPost {
   link: string
