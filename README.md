@@ -1,4 +1,3 @@
-
 # Blue Bot 🌊
 
 **[𝗲𝘂𝗿𝗼𝗽𝗲𝗮𝗻𝗮 𝗯𝗹𝘂𝗲𝘀](https://bsky.app/profile/europeana-blues.bsky.social)** is a bot for the [Bluesky](https://bsky.app/) platform that posts images from the **Blue Gallery** on [Europeana](https://www.europeana.eu/). It fetches visual items from a curated collection and shares them with a translated description and a link to the original (as a comment).
@@ -35,13 +34,13 @@
 3. **Set up environment variables:**
 
     Create a .env file with the following values:
-    
+
     ```bash
     BSKY_USERNAME=your-handle.bsky.social
     BSKY_APP_PASSWORD=your-app-password
     EUROPEANA_API_KEY=your-europeana-api-key
     DEEPL_API_KEY=your-deepl-api-key
-   
+
 4. **Run the bot:**
 
    ```bash
@@ -51,5 +50,4 @@
 [MIT](https://choosealicense.com/licenses/mit/) — feel free to use, modify, and share!
 ## Authors
 
-- Made with 💟 by @ni4yja.bsky.social
-
+- Made with 💟 by [@ni4yja.bsky.social](https://bsky.app/profile/did:plc:vhmeqpag4d3ubflbsrgck4nb)

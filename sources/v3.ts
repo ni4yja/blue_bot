@@ -37,11 +37,11 @@ export async function fetchFromEuropeanaV3Api(
 
     const rawImage
       = providerProxy?.edmIsShownBy
-      || providerProxy?.edmObject
-      || providerProxy?.edmPreview
-      || providerProxy?.proxyIn?.object?.id
-      || providerProxy?.proxyIn?.isShownBy?.id
-      || data.thumbnail
+        || providerProxy?.edmObject
+        || providerProxy?.edmPreview
+        || providerProxy?.proxyIn?.object?.id
+        || providerProxy?.proxyIn?.isShownBy?.id
+        || data.thumbnail
 
     const image = await resolveThumbnail(rawImage)
 

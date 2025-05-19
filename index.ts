@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import { AtpAgent } from '@atproto/api'
 import * as dotenv from 'dotenv'
-import cron from 'node-cron'
 
+import cron from 'node-cron'
 import { loginToBsky, postToBsky, replyToBsky } from './services/bskyService.js'
 import { postSuccessImage } from './services/postSuccessImage.js'
 import { addPosted, isAlreadyPosted, loadPosted } from './storage/postedStorage.js'
@@ -13,23 +13,21 @@ import { formatPostData, sanitizeText } from './utils/format.js'
 
 dotenv.config()
 
-const disableCache = process.env.DISABLE_CACHE === 'true'
-
 async function runBlueBot() {
   try {
     const username = process.env.BLUESKY_USERNAME
     const password = process.env.BLUESKY_PASSWORD
 
-    if (!username || !password) {
+    if (!username || !password)
       throw new Error('❌ Missing Bluesky credentials in environment variables.')
-    }
 
     const agent = new AtpAgent({ service: 'https://bsky.social' })
     await loginToBsky(agent, username, password)
 
     const posts = await loadPosts()
-    const posted = disableCache ? [] : await loadPosted()
-    const skipped = disableCache ? [] : await loadSkipped()
+    console.log(`📥 Loaded ${posts.length} posts from storage`)
+    const posted = await loadPosted()
+    const skipped = await loadSkipped()
 
     const candidates = posts.filter(
       p =>
@@ -65,24 +63,22 @@ async function runBlueBot() {
         const postUri = await postToBsky(agent, fullText, embed)
         if (postUri) {
           postPublished = true
-          if (!disableCache)
-            await addPosted(candidate.link)
+          await addPosted(candidate.link)
           await replyToBsky(agent, candidate.link, postUri)
         }
       }
       catch (err) {
         console.error('❌ Failed to post, marking as posted anyway:', err)
         postPublished = true
-        if (!disableCache)
-          await addPosted(candidate.link)
+        await addPosted(candidate.link)
       }
 
-      break // only post one per run
+      break // only one post per run
     }
 
     if (postPublished) {
-      const latestPosted = disableCache ? [] : await loadPosted()
-      const latestSkipped = disableCache ? [] : await loadSkipped()
+      const latestPosted = await loadPosted()
+      const latestSkipped = await loadSkipped()
       const remaining = posts.filter(
         p =>
           !isAlreadyPosted(latestPosted, p.link)
@@ -102,7 +98,7 @@ async function runBlueBot() {
   }
 }
 
-// 🕛 Щоденний запуск о 12:00 за Європою/Варшавою
+// 🕛 Запускаємо щодня о 12:00 за Варшавою
 cron.schedule('0 12 * * *', () => {
   console.log('⏰ Scheduled run at 12:00 Europe/Warsaw')
   runBlueBot()
