@@ -1,8 +1,7 @@
 /* eslint-disable no-console */
 import { AtpAgent } from '@atproto/api'
 import * as dotenv from 'dotenv'
-import yargs from 'yargs'
-import { hideBin } from 'yargs/helpers'
+import cron from 'node-cron'
 
 import { loginToBsky, postToBsky, replyToBsky } from './services/bskyService.js'
 import { postSuccessImage } from './services/postSuccessImage.js'
@@ -11,34 +10,10 @@ import { loadPosts } from './storage/postStorage.js'
 import { isAlreadySkipped, loadSkipped } from './storage/skippedStorage.js'
 import { prepareImageEmbed } from './utils/embedHelper.js'
 import { formatPostData, sanitizeText } from './utils/format.js'
-import { logPostPayload } from './utils/logPostPayload.js'
 
 dotenv.config()
 
-const argvPromise = yargs(hideBin(process.argv))
-  .option('dry-run', {
-    alias: 'd',
-    type: 'boolean',
-    description: 'Preview only, do not post to Bluesky',
-  })
-  .option('list', {
-    alias: 'l',
-    type: 'boolean',
-    description: 'List all posts with available images and exit',
-  })
-  .strict()
-  .help()
-  .argv
-
-// eslint-disable-next-line antfu/no-top-level-await
-const argv = await argvPromise
-
-const isDryRun = argv['dry-run'] === true || process.env.DRY_RUN === 'true'
-const isListOnly = argv.list === true
 const disableCache = process.env.DISABLE_CACHE === 'true'
-
-console.log('🧪 isDryRun:', isDryRun)
-console.log('📦 disableCache:', disableCache)
 
 async function runBlueBot() {
   try {
@@ -64,14 +39,6 @@ async function runBlueBot() {
         && (p.image.startsWith('http://') || p.image.startsWith('https://')),
     )
 
-    if (isListOnly) {
-      console.log(`📄 Found ${candidates.length} posts with available images:\n`)
-      candidates.forEach((post, i) => {
-        console.log(`${i + 1}. ${post.link}`)
-      })
-      return
-    }
-
     if (candidates.length === 0) {
       console.log('ℹ️ No new posts to process.')
       return
@@ -86,7 +53,7 @@ async function runBlueBot() {
       if (!res)
         continue
 
-      const { embed, debugInfo } = res
+      const { embed } = res
       const { title, description } = formatPostData(
         candidate.title,
         candidate.description,
@@ -94,33 +61,26 @@ async function runBlueBot() {
       )
       const fullText = sanitizeText([title, description].filter(Boolean).join('\n\n'))
 
-      if (isDryRun) {
-        logPostPayload(fullText, embed, debugInfo)
-        continue
-      }
-
       try {
         const postUri = await postToBsky(agent, fullText, embed)
         if (postUri) {
           postPublished = true
-          if (!disableCache) {
+          if (!disableCache)
             await addPosted(candidate.link)
-          }
           await replyToBsky(agent, candidate.link, postUri)
         }
       }
       catch (err) {
         console.error('❌ Failed to post, marking as posted anyway:', err)
         postPublished = true
-        if (!disableCache) {
+        if (!disableCache)
           await addPosted(candidate.link)
-        }
       }
 
-      break
+      break // only post one per run
     }
 
-    if (!isDryRun && postPublished) {
+    if (postPublished) {
       const latestPosted = disableCache ? [] : await loadPosted()
       const latestSkipped = disableCache ? [] : await loadSkipped()
       const remaining = posts.filter(
@@ -142,4 +102,13 @@ async function runBlueBot() {
   }
 }
 
+// 🕛 Щоденний запуск о 12:00 за Європою/Варшавою
+cron.schedule('0 12 * * *', () => {
+  console.log('⏰ Scheduled run at 12:00 Europe/Warsaw')
+  runBlueBot()
+}, {
+  timezone: 'Europe/Warsaw',
+})
+
+// 🚀 Одноразовий запуск при старті контейнера
 runBlueBot()
