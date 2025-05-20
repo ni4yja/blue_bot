@@ -97,13 +97,13 @@ async function runBlueBot() {
   }
 }
 
-// 🕛 Запускаємо щодня о 12:00 за Варшавою
-cron.schedule('0 12 * * *', () => {
-  console.log('⏰ Scheduled run at 12:00 Europe/Warsaw')
+console.log('🛠️ Ініціалізація cron...')
+cron.schedule('18 14 * * *', () => {
+  console.log('⏰ Cron спрацював! Поточний час:', new Date().toString())
   runBlueBot()
 }, {
   timezone: 'Europe/Warsaw',
 })
 
 // 🚀 Одноразовий запуск при старті контейнера
-runBlueBot()
+// runBlueBot()
