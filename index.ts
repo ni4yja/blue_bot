@@ -2,7 +2,6 @@
 import { AtpAgent } from '@atproto/api'
 import * as dotenv from 'dotenv'
 
-import cron from 'node-cron'
 import { loginToBsky, postToBsky, replyToBsky } from './services/bskyService.js'
 import { postSuccessImage } from './services/postSuccessImage.js'
 import { addPosted, isAlreadyPosted, loadPosted } from './storage/postedStorage.js'
@@ -18,8 +17,9 @@ async function runBlueBot() {
     const username = process.env.BLUESKY_USERNAME
     const password = process.env.BLUESKY_PASSWORD
 
-    if (!username || !password)
+    if (!username || !password) {
       throw new Error('❌ Missing Bluesky credentials in environment variables.')
+    }
 
     const agent = new AtpAgent({ service: 'https://bsky.social' })
     await loginToBsky(agent, username, password)
@@ -97,13 +97,5 @@ async function runBlueBot() {
   }
 }
 
-console.log('🛠️ Ініціалізація cron...')
-cron.schedule('18 14 * * *', () => {
-  console.log('⏰ Cron спрацював! Поточний час:', new Date().toString())
-  runBlueBot()
-}, {
-  timezone: 'Europe/Warsaw',
-})
-
-// 🚀 Одноразовий запуск при старті контейнера
-// runBlueBot()
+// 🚀 One-time run (GitHub Actions handles scheduling)
+runBlueBot()
