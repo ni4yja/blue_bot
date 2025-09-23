@@ -56,8 +56,15 @@ export async function replyToBsky(
 
   try {
     const shortLink = await shortenUrl(originalLink)
-    const replyText = sanitizeText(`🌊 More info on Europeana:
-${shortLink}`)
+    const baseText = '🌊 More info on Europeana:\u00A0'
+    const fullText = `${baseText}${shortLink}`
+    const replyText = sanitizeText(fullText)
+
+    // Calculate byte positions for the link in the sanitized text
+    const encoder = new TextEncoder()
+    const sanitizedBaseText = sanitizeText(baseText)
+    const byteStart = encoder.encode(sanitizedBaseText).length
+    const byteEnd = encoder.encode(replyText).length
 
     const thread = await agent.app.bsky.feed.getPostThread({ uri: parentUri })
     const rootPost = (thread.data.thread as any).post
@@ -75,6 +82,20 @@ ${shortLink}`)
         $type: 'app.bsky.feed.post',
         text: replyText,
         createdAt: new Date().toISOString(),
+        facets: [
+          {
+            index: {
+              byteStart,
+              byteEnd,
+            },
+            features: [
+              {
+                $type: 'app.bsky.richtext.facet#link',
+                uri: originalLink,
+              },
+            ],
+          },
+        ],
         reply: {
           root: { cid: rootCid, uri: parentUri },
           parent: { cid: rootCid, uri: parentUri },
